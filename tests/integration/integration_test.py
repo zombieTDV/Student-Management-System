@@ -1,5 +1,2 @@
-# from Warehouse.menu import run
-
-
-# def test_sample():
-#     run()
+def test_sample():
+    pass
