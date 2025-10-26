@@ -8,9 +8,7 @@ version = "0.1.0"
 description = ""
 authors = [
     { name = "Trương Đỗ Vương", email = "zombietdv2701@gmail.com" },
-    { name = "Nguyễn Trần Việt Nhật", email = "nhatok198@gmail.com" },
-    { name = "Lê Anh Khôi", email = "" },
-    { name = "Hoàng Văn Hưng", email = "" }
+    { name = "Nguyễn Trần Việt Nhật", email = "nhatok198@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.9"
@@ -23,6 +21,7 @@ dev = [
     "pre-commit",
     "black",
     "isort",
+    "django"
 ]
 
 [tool.pytest.ini_options]
