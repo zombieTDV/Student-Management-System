@@ -9,17 +9,7 @@
 
 ---
 
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/zombieTDV/Student-Management-System.git
-```
-
-```bash
-cd Student-Management-System
-```
-
-### Step 2: Create Virtual Environment
+### Step 1: Create Virtual Environment
 
 ```bash
 python -m venv .venv
@@ -41,7 +31,7 @@ Activate the virtual environment:
 
 ---
 
-### Step 3: Install the Project
+### Step 2: Install the Project
 
 Development mode (recommended):
 
@@ -57,7 +47,7 @@ pip install -e .
 
 ---
 
-### Step 4: Run the Application
+### Step 3: Run the Application
 
 - Run the shim launcher at project root:
 
