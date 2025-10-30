@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
   <diagram name="Page-1" id="DcqPbEdag9WUeyErrU5t">
-    <mxGraphModel dx="3363" dy="1222" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2236" dy="679" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -74,7 +74,7 @@
         <mxCell id="1OKcwcNkkEkwQtk-hM1w-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="1OKcwcNkkEkwQtk-hM1w-6" target="1OKcwcNkkEkwQtk-hM1w-57" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="MqR78B6b_dFZWCgSJ_NP-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="1OKcwcNkkEkwQtk-hM1w-6" target="MqR78B6b_dFZWCgSJ_NP-1" edge="1">
+        <mxCell id="MqR78B6b_dFZWCgSJ_NP-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="1OKcwcNkkEkwQtk-hM1w-6" target="MqR78B6b_dFZWCgSJ_NP-1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1760" y="320" />
@@ -173,6 +173,14 @@
         <mxCell id="1OKcwcNkkEkwQtk-hM1w-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="1OKcwcNkkEkwQtk-hM1w-38" target="1OKcwcNkkEkwQtk-hM1w-48" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="1OKcwcNkkEkwQtk-hM1w-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="1OKcwcNkkEkwQtk-hM1w-38" target="1OKcwcNkkEkwQtk-hM1w-47" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1480" y="700" />
+              <mxPoint x="1210" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="1OKcwcNkkEkwQtk-hM1w-38" value="Selectable Fees for Payment(checkboxes)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="1390" y="630" width="180" height="50" as="geometry" />
         </mxCell>
@@ -190,6 +198,9 @@
         </mxCell>
         <mxCell id="1OKcwcNkkEkwQtk-hM1w-41" value="3.2 Paying page" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="1390" y="360" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1OKcwcNkkEkwQtk-hM1w-47" value=" Payment Instructions&lt;br/&gt; (Room #, Open Hours)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1120" y="760" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="1OKcwcNkkEkwQtk-hM1w-48" value=" Payment Page Header&lt;br/&gt; (StudentID, DOB, Name)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="1390" y="760" width="180" height="50" as="geometry" />
@@ -240,7 +251,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="MqR78B6b_dFZWCgSJ_NP-1" value="4.2 Resigter new student" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="MqR78B6b_dFZWCgSJ_NP-1" value="4.2 Resigter new student" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1900" y="360" width="180" height="50" as="geometry" />
         </mxCell>
       </root>
