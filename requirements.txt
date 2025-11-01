@@ -4,8 +4,6 @@
 #
 #    pip-compile --extra=dev --output-file=requirements.txt pyproject.toml
 #
-asgiref==3.10.0
-    # via django
 black==25.9.0
     # via Student_Management_System (pyproject.toml)
 cfgv==3.4.0
@@ -16,13 +14,15 @@ colorama==0.4.6
     # via click
 distlib==0.4.0
     # via virtualenv
-django==5.2.7
-    # via Student_Management_System (pyproject.toml)
+dnspython==2.8.0
+    # via pymongo
 filelock==3.20.0
     # via virtualenv
 identify==2.6.15
     # via pre-commit
 isort==7.0.0
+    # via Student_Management_System (pyproject.toml)
+mongita==1.2.0
     # via Student_Management_System (pyproject.toml)
 mypy-extensions==1.1.0
     # via black
@@ -38,13 +38,13 @@ platformdirs==4.5.0
     #   virtualenv
 pre-commit==4.3.0
     # via Student_Management_System (pyproject.toml)
+pymongo==4.15.3
+    # via mongita
 pytokens==0.2.0
     # via black
 pyyaml==6.0.3
     # via pre-commit
-sqlparse==0.5.3
-    # via django
-tzdata==2025.2
-    # via django
+sortedcontainers==2.4.0
+    # via mongita
 virtualenv==20.35.3
     # via pre-commit

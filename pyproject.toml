@@ -18,7 +18,7 @@ dev = [
     "pre-commit",
     "black",
     "isort",
-    "django"
+    "mongita"
 ]
 
 [tool.pytest.ini_options]
