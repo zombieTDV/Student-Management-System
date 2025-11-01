@@ -1,5 +1,9 @@
 # Student_Management_System
 
+## Testing report
+
+[![Pytest report](https://img.shields.io/badge/pytest-report--latest-blue?logo=pytest&logoColor=white)](https://zombieTDV.github.io/Student-Management-System/latest-report/)
+
 ## Installation Guide
 
 ### Prerequisites

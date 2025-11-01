@@ -5,18 +5,15 @@ on:
     branches:
       - dev
 
-# Give the workflow the minimum permissions required for Pages deploy
 permissions:
-  contents: read        # allow reading repo contents
-  pages: write          # required to create a Pages deployment
-  id-token: write       # required by the deploy action to validate the deployment
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   fast-lint-and-test:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    outputs:
-      tests-exitcode: ${{ steps.run-tests.outputs.exitcode }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,31 +50,42 @@ jobs:
       - name: Run unit tests and generate HTML report
         id: run-tests
         run: |
+          # continue even if tests fail so we always produce the report
           set +e
           pytest -q tests/unit --html=pytest-report.html --self-contained-html
           echo "exitcode=$?" >> $GITHUB_OUTPUT
 
-      - name: Upload pytest HTML report (artifact)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-html-report
-          path: pytest-report.html
-
-      # Prepare a tiny site dir with index.html (the Pages upload expects a static site dir)
-      - name: Prepare site for GitHub Pages
+      - name: Prepare site for GitHub Pages (index + stable redirect)
         if: always()
         run: |
           mkdir -p site
-          # use the pytest report as the site index
+          # Put full pytest report at site/index.html
           cp pytest-report.html site/index.html
 
-      # Configure Pages & upload artifact for Pages
-      - name: Configure GitHub Pages (setup metadata)
-        id: pages-setup
-        uses: actions/configure-pages@v5
+          # Create a stable /latest-report/ path that redirects to the index
+          mkdir -p site/latest-report
+          cat > site/latest-report/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta http-equiv="refresh" content="0; url=../index.html" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Latest Pytest Report</title>
+          </head>
+          <body>
+            <p>Redirecting to the latest pytest report. If your browser does not redirect automatically, <a href="../index.html">click here</a>.</p>
+            <script>
+              // JS fallback for the redirect
+              window.location.replace('../index.html');
+            </script>
+          </body>
+          </html>
+          HTML
 
-      - name: Upload GitHub Pages artifact
+      # Upload only the Pages artifact (no separate generic artifact)
+      - name: Upload site as Pages artifact
+        if: always()
         uses: actions/upload-pages-artifact@v4
         with:
           path: site
@@ -85,7 +93,6 @@ jobs:
   publish-pages:
     needs: fast-lint-and-test
     runs-on: ubuntu-latest
-    # no environment: block here (prevents environment protection checks)
     permissions:
       contents: read
       pages: write
@@ -95,3 +102,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Add Pages URL and stable latest-report link to job summary
+        if: always()
+        run: |
+          echo "### GitHub Pages: pytest report" >> $GITHUB_STEP_SUMMARY
+          echo "Site URL: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          # 'latest-report' stable path (appended to the page_url)
+          # ensure there is exactly one slash between base and 'latest-report'
+          base="${{ steps.deployment.outputs.page_url }}"
+          # Remove trailing slash (if any) then append /latest-report/
+          base="${base%/}"
+          echo "Latest-report: ${base}/latest-report/" >> $GITHUB_STEP_SUMMARY
