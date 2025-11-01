@@ -112,4 +112,4 @@ jobs:
           base="${{ steps.deployment.outputs.page_url }}"
           # Remove trailing slash (if any) then append /latest-report/
           base="${base%/}"
-          echo "Latest-report: https://github.com/${{ github.repository }}/latest-report/" >> $GITHUB_STEP_SUMMARY
+          echo "Latest-report: https://zombietdv.github.io/Student-Management-System/latest-report/" >> $GITHUB_STEP_SUMMARY
