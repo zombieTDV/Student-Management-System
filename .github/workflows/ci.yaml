@@ -5,11 +5,18 @@ on:
     branches:
       - dev
 
+# Give the workflow the minimum permissions required for Pages deploy
+permissions:
+  contents: read        # allow reading repo contents
+  pages: write          # required to create a Pages deployment
+  id-token: write       # required by the deploy action to validate the deployment
+
 jobs:
-  # Fast checks — ONLY on push to dev
   fast-lint-and-test:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    outputs:
+      tests-exitcode: ${{ steps.run-tests.outputs.exitcode }}
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +29,7 @@ jobs:
 
       - name: Install pip-tools
         run: |
-          python -m pip install --upgrade pip "pip==25.2" 
+          python -m pip install --upgrade pip "pip==25.2"
           pip install pip-tools
 
       - name: Compile requirements
@@ -32,7 +39,7 @@ jobs:
       - name: Install fast dependencies
         run: |
           pip install -r requirements.txt
-          pip install flake8 black mypy pytest
+          pip install flake8 black mypy pytest pytest-html
 
       - name: Run flake8
         run: flake8 src
@@ -43,5 +50,51 @@ jobs:
       - name: Run mypy
         run: mypy --ignore-missing-imports src
 
-      - name: Run unit tests
-        run: pytest -q tests/unit
+      - name: Run unit tests and generate HTML report
+        id: run-tests
+        run: |
+          set +e
+          pytest -q tests/unit --html=pytest-report.html --self-contained-html
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload pytest HTML report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-html-report
+          path: pytest-report.html
+
+      # Prepare a tiny site dir with index.html (the Pages upload expects a static site dir)
+      - name: Prepare site for GitHub Pages
+        if: always()
+        run: |
+          mkdir -p site
+          # use the pytest report as the site index
+          cp pytest-report.html site/index.html
+
+      # Configure Pages & upload artifact for Pages
+      - name: Configure GitHub Pages (setup metadata)
+        id: pages-setup
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  publish-pages:
+    # must wait for the build job to create the artifact
+    needs: fast-lint-and-test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      # URL output will be set by the deploy step
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
