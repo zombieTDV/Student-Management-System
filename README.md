@@ -1,5 +1,9 @@
 # Student_Management_System
 
+## Testing report
+
+[![Pytest report](https://img.shields.io/badge/pytest-report--latest-blue?logo=pytest&logoColor=white)](https://zombieTDV.github.io/Student-Management-System/latest-report/)
+
 ## Installation Guide
 
 ### Prerequisites
@@ -85,3 +89,11 @@ Our configuration lints all .py files in src/, tests/, and the project root (e.g
 ## Development Notes
 
 -Use pip==25.2.3 to ensure compatibility with pip-tools 7.5.1
+
+## Project structure
+
+src/  
+├─ models/        # data layer classes (e.g. User, Payment, Announcement)  
+├─ views/         # GUI code (Tkinter windows and dialogs)  
+├─ controllers/   # application logic linking views and models  
+├─ main.py        # application entry point (initializes MVC and starts app)  

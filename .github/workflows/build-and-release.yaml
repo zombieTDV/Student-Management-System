@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write   # required for release publishing
+  pages: write
+  id-token: write
 
 jobs:
   # ------------------------
@@ -38,7 +40,7 @@ jobs:
       - name: Install fast dependencies
         run: |
           pip install -r requirements.txt
-          pip install flake8 black mypy pytest
+          pip install flake8 black mypy pytest pytest-html
 
       - name: Run flake8
         run: flake8 src
@@ -49,8 +51,13 @@ jobs:
       - name: Run mypy
         run: mypy --ignore-missing-imports src
 
-      - name: Run unit tests
-        run: pytest -q tests/unit
+      - name: Run unit tests and generate HTML report
+        id: run-tests
+        run: |
+          # continue even if tests fail so we always produce the report
+          set +e
+          pytest -q tests/unit --html=pytest-report.html --self-contained-html
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
 
       - name: Run integration tests
         if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
@@ -63,6 +70,71 @@ jobs:
           VALIDATE_PYTHON_MYPY: true
           PYTHON_MYPY_ARGS: "--no-install-types --ignore-missing-imports"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Prepare site for GitHub Pages (index + stable redirect)
+      - name: Prepare site for GitHub Pages (index + stable redirect)
+        if: always()
+        run: |
+          mkdir -p site
+          # Put full pytest report at site/index.html
+          cp pytest-report.html site/index.html
+
+          # Create a stable /latest-report/ path that redirects to the index
+          mkdir -p site/latest-report
+          cat > site/latest-report/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta http-equiv="refresh" content="0; url=../index.html" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Latest Pytest Report</title>
+          </head>
+          <body>
+            <p>Redirecting to the latest pytest report. If your browser does not redirect automatically, <a href="../index.html">click here</a>.</p>
+            <script>
+              // JS fallback for the redirect
+              window.location.replace('../index.html');
+            </script>
+          </body>
+          </html>
+          HTML
+
+      # Upload only the Pages artifact (no separate generic artifact)
+      - name: Upload site as Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  # ------------------------
+  # Publish Pages (only on push to main)
+  # ------------------------
+  publish-pages:
+    needs: full-lint-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Add Pages URL and stable latest-report link to job summary
+        if: always()
+        run: |
+          echo "### GitHub Pages: pytest report" >> $GITHUB_STEP_SUMMARY
+          # Show repository URL for reference
+          echo "Repo: https://github.com/${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+
+          # Compute stable latest-report link based on deployment output
+          base="${{ steps.deployment.outputs.page_url }}"
+          # Remove trailing slash (if any)
+          base="${base%/}"
+          echo "Latest-report: ${base}/latest-report/" >> $GITHUB_STEP_SUMMARY
 
   # ------------------------
   # Build & Release

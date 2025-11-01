@@ -9,8 +9,8 @@ description = ""
 authors = []
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = [
-    
+dependencies = [ 
+    "mongita"
 ]  # runtime deps go here
 
 [project.optional-dependencies]
@@ -18,17 +18,17 @@ dev = [
     "pre-commit",
     "black",
     "isort",
-    "django"
+    "mongita"
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 
 [tool.black]
-line-length = 100
+line-length = 88
 target-version = ["py39"]
 
 
 [tool.isort]
 profile = "black"
-line_length = 100
+line_length = 88
