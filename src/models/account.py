@@ -39,6 +39,8 @@ class Account:
         """Authenticate account"""
         password_hash = self.hash_password(password)
 
+        print(accountname)
+        print(password_hash)
         account = self.collection.find_one(
             {"accountname": accountname, "password_hash": password_hash}
         )
@@ -91,3 +93,10 @@ class Account:
         except Exception as e:
             print(f"Error updating password: {e}")
             return False
+
+
+# a = Account()
+# a.create_account("sv", "sv@", "sv123")
+# print(a.authenticate("admin", "admin123"))
+
+# print(a.hash_password("admin123"))

@@ -4,6 +4,7 @@ from controllers.auth_controller import AuthController
 
 # from controllers.notification_controller import NotificationController
 from views.login import LoginNotificationApp
+from views.student_dashboard import StudentDashboard
 
 # from views.forgot_password import ForgotPasswordApp
 # from views.notification_detail import NotificationDetailApp
@@ -41,8 +42,8 @@ class MainApp:
             self.container,
             self.handle_login,
             self.show_forgot_password,
-            self.show_notification_detail,
-            self.notification_controller,
+            self.show_student_dashboard,
+            self.auth_controller,
         )
 
     def handle_login(self, username, password):
@@ -50,7 +51,9 @@ class MainApp:
         result = self.auth_controller.login(username, password)
         return result
 
-    # def show_forgot_password(self):
+    def show_forgot_password(self):
+        pass
+
     #     """Show forgot password view"""
     #     for widget in self.container.winfo_children():
     #         widget.destroy()
@@ -66,7 +69,9 @@ class MainApp:
         result = self.auth_controller.recover_password(email)
         return result
 
-    # def show_notification_detail(self, notification_id):
+    def show_notification_detail(self, notification_id):
+        pass
+
     #     """Show notification detail view"""
     #     notification = self.notification_controller.\
     # get_notification_detail(notification_id)
@@ -80,6 +85,12 @@ class MainApp:
     #             self.show_login,
     #             notification
     #         )
+    def show_student_dashboard(self):
+        """Show student dashboard view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = StudentDashboard(self.container)
 
     def on_closing(self):
         """Handle application close"""

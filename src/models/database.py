@@ -27,9 +27,9 @@ class Database:
         """Connect to MongoDB"""
         try:
             # MongoDB Atlas (Cloud)
-            MONGO_URI = os.getenv("MONGO_URI")
+            MONGO_URL = os.getenv("MONGO_URL")
             MONGO_DB = os.getenv("MONGO_DB")
-            self._client = MongoClient(MONGO_URI)
+            self._client = MongoClient(MONGO_URL)
 
             # Test connection
             self._client.admin.command("ping")

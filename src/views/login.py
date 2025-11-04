@@ -2,10 +2,19 @@ import customtkinter as ctk
 
 
 class LoginNotificationApp:
-    def __init__(self, parent, forgot_password_callback, detail_callback):
+    def __init__(
+        self,
+        parent,
+        forgot_password_callback,
+        detail_callback,
+        student_dashboard_callback,
+        auth_controller,
+    ):
         self.parent = parent
         self.forgot_password_callback = forgot_password_callback
         self.detail_callback = detail_callback  # Store detail page callback
+        self.student_dashboard_callback = student_dashboard_callback
+        self.auth_controller = auth_controller
 
         # Set theme and color
         ctk.set_appearance_mode("light")
@@ -186,7 +195,11 @@ class LoginNotificationApp:
     def login(self):
         account = self.account_entry.get()
         password = self.password_entry.get()
-        print(f"Login attempted with account: {account} - password: {password}")
+        print(self.auth_controller.login(account, password))
+        if self.auth_controller.login(account, password)["success"] is True:
+            self.student_dashboard_callback()
+        else:
+            print("Invalid credential")
 
     def forgot_password(self):
         self.forgot_password_callback()

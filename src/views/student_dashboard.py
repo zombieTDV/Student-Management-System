@@ -194,7 +194,7 @@ class StudentDashboard:
 
             # Icon
             icon_label = ctk.CTkLabel(
-                btn_container, text=btn_data["icon"], font=ctk.CTkFont(size=50)
+                btn_container, text=btn_data["icon"], font=ctk.CTkFont(size=30)
             )
             icon_label.pack(pady=(30, 10))
 
@@ -212,12 +212,12 @@ class StudentDashboard:
             )
             btn.pack(padx=20, pady=(0, 30), fill="x")
 
-    # def darken_color(self, hex_color):
-    #     """Darken a hex color for hover effect"""
-    #     hex_color = hex_color.lstrip("#")
-    #     rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
-    #     darker = tuple(int(c * 0.8) for c in rgb)
-    #     return "#%02x%02x%02x" % darker
+    def darken_color(self, hex_color):
+        """Darken a hex color for hover effect"""
+        hex_color = hex_color.lstrip("#")
+        rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+        darker = tuple(int(c * 0.8) for c in rgb)
+        return "#%02x%02x%02x" % darker
 
     def update_info(self):
         print("Update Info clicked")
