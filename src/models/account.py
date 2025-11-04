@@ -38,9 +38,6 @@ class Account:
     def authenticate(self, accountname, password):
         """Authenticate account"""
         password_hash = self.hash_password(password)
-
-        print(accountname)
-        print(password_hash)
         account = self.collection.find_one(
             {"accountname": accountname, "password_hash": password_hash}
         )

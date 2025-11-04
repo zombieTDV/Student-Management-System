@@ -6,7 +6,8 @@ from controllers.auth_controller import AuthController
 from views.login import LoginNotificationApp
 from views.student_dashboard import StudentDashboard
 
-# from views.forgot_password import ForgotPasswordApp
+from views.forgot_password import ForgotPasswordApp
+
 # from views.notification_detail import NotificationDetailApp
 from models.database import db
 
@@ -40,10 +41,10 @@ class MainApp:
 
         self.current_frame = LoginNotificationApp(
             self.container,
-            self.handle_login,
             self.show_forgot_password,
+            None,
             self.show_student_dashboard,
-            self.auth_controller,
+            self.handle_login,
         )
 
     def handle_login(self, username, password):
@@ -52,25 +53,23 @@ class MainApp:
         return result
 
     def show_forgot_password(self):
-        pass
+        """Show forgot password view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
 
-    #     """Show forgot password view"""
-    #     for widget in self.container.winfo_children():
-    #         widget.destroy()
-
-    #     self.current_frame = ForgotPasswordApp(
-    #         self.container,
-    #         self.show_login,
-    #         self.handle_password_recovery
-    #     )
+        self.current_frame = ForgotPasswordApp(
+            self.container,
+            self.show_login,
+            # self.handle_password_recovery
+        )
 
     def handle_password_recovery(self, email):
         """Handle password recovery through controller"""
         result = self.auth_controller.recover_password(email)
         return result
 
-    def show_notification_detail(self, notification_id):
-        pass
+    # def show_notification_detail(self, notification_id):
+    #     pass
 
     #     """Show notification detail view"""
     #     notification = self.notification_controller.\
@@ -85,6 +84,7 @@ class MainApp:
     #             self.show_login,
     #             notification
     #         )
+
     def show_student_dashboard(self):
         """Show student dashboard view"""
         for widget in self.container.winfo_children():

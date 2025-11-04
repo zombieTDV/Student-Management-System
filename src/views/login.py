@@ -8,13 +8,13 @@ class LoginNotificationApp:
         forgot_password_callback,
         detail_callback,
         student_dashboard_callback,
-        auth_controller,
+        handle_login_callback,
     ):
         self.parent = parent
         self.forgot_password_callback = forgot_password_callback
         self.detail_callback = detail_callback  # Store detail page callback
         self.student_dashboard_callback = student_dashboard_callback
-        self.auth_controller = auth_controller
+        self.handle_login_callback = handle_login_callback
 
         # Set theme and color
         ctk.set_appearance_mode("light")
@@ -195,8 +195,7 @@ class LoginNotificationApp:
     def login(self):
         account = self.account_entry.get()
         password = self.password_entry.get()
-        print(self.auth_controller.login(account, password))
-        if self.auth_controller.login(account, password)["success"] is True:
+        if self.handle_login_callback(account, password)["success"] is True:
             self.student_dashboard_callback()
         else:
             print("Invalid credential")
