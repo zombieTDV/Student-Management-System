@@ -19,7 +19,8 @@ dev = [
     "black",
     "isort",
     "customtkinter",
-    "mongita"
+    "pymongo",
+    "python-dotenv"
 ]
 
 [tool.pytest.ini_options]
