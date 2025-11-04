@@ -27,7 +27,8 @@ class Database:
         """Connect to MongoDB"""
         try:
             # MongoDB Atlas (Cloud)
-            MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+            MONGO_URI = os.getenv("MONGO_URI")
+            MONGO_DB = os.getenv("MONGO_DB")
             self._client = MongoClient(MONGO_URI)
 
             # Test connection
@@ -35,7 +36,7 @@ class Database:
             print("✅ Connected to MongoDB successfully!")
 
             # Select database
-            self._db = self._client["group1_app"]  # Database name
+            self._db = self._client[MONGO_DB]  # Database name
 
         except ConnectionFailure as e:
             print(f"❌ Failed to connect to MongoDB: {e}")
@@ -56,5 +57,3 @@ class Database:
 
 # Create global database instance
 db = Database()
-db.connect()
-db.close()
