@@ -3,7 +3,7 @@ from models.account import Account
 class AuthController:
     def __init__(self):
         self.account_model = Account()
-        self.current_user = None
+        self.current_account = None
     
     def login(self, username, password):
         """Handle login logic"""
@@ -23,8 +23,8 @@ class AuthController:
     
     def recover_password(self, email):
         """Handle password recovery"""
-        user = self.account_model.get_by_email(email)
-        if user:
+        account = self.account_model.get_by_email(email)
+        if account:
             # TODO: Send recovery email
             return {"success": True, "message": "Recovery email sent"}
         else:
