@@ -18,7 +18,9 @@ dev = [
     "pre-commit",
     "black",
     "isort",
-    "mongita"
+    "customtkinter",
+    "pymongo",
+    "python-dotenv"
 ]
 
 [tool.pytest.ini_options]
