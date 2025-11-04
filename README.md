@@ -92,8 +92,31 @@ Our configuration lints all .py files in src/, tests/, and the project root (e.g
 
 ## Project structure
 
-src/  
-├─ models/        # data layer classes (e.g. User, Payment, Announcement)  
-├─ views/         # GUI code (Tkinter windows and dialogs)  
-├─ controllers/   # application logic linking views and models  
-├─ main.py        # application entry point (initializes MVC and starts app)  
+*Example:*
+
+src/
+│
+├── main.py                 # Entry point
+│
+├── controllers/
+│   ├── __init__.py
+│   ├── auth_controller.py      # Login, logout, password recovery
+│   ├── notification_controller.py  # Notification CRUD operations
+│   └── navigation_controller.py    # Screen navigation
+│
+├── models/
+│   ├── __init__.py
+│   ├── database.py         # Database connection & setup
+│   ├── student.py            # Student model
+│   ├── admin.py            # Administrator model
+│   └── notification.py    # Notification model
+│
+├── views/
+│   ├── __init__.py
+│   ├── login.py           # Login UI
+│   ├── forgot_password.py # Password recovery UI
+│   └── notification_detail.py  # Detail page UI
+│
+└── utils/
+    ├── __init__.py
+    └── config.py          # Configuration settings
