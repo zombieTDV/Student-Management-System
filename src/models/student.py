@@ -1,180 +1,80 @@
-# models/student.py
-from models.database import db
+from models.account import Account # Import lớp Cha
 from datetime import datetime
-from bson import ObjectId  # Rất quan trọng để làm việc với _id
+from bson import ObjectId
 
-class Student:
-    def __init__(self):
+class Student(Account):
+    def __init__(self, fullName, dob, gender, address, contactPhone, major, 
+                 imageURL=None, fees=None, **kwargs):
         """
-        Khởi tạo đối tượng quản lý collection 'students'
+        Khởi tạo Student.
+        **kwargs sẽ chứa các trường của Account (username, email...)
         """
-        self.collection = db.get_db()["students"]
+        # Gán cứng role='student' và gọi hàm __init__ của Cha
+        super().__init__(role="student", **kwargs)
+        
+        # Các thuộc tính riêng của Student
+        self.fullName = fullName
+        self.dob = dob
+        self.gender = gender
+        self.address = address
+        self.contactPhone = contactPhone
+        self.major = major
+        self.imageURL = imageURL
+        self.fees = fees or [] # Mảng nhúng (embedded)
 
-    def create_indexes(self):
+    def to_doc(self):
         """
-        Tạo các index để tối ưu truy vấn
+        Chuyển object Student thành 1 document để lưu vào DB
         """
-        # account_id phải là duy nhất, vì 1 account chỉ link tới 1 student
-        self.collection.create_index("account_id", unique=True)
-        # Các trường thường xuyên tìm kiếm
-        self.collection.create_index("major")
-        self.collection.create_index("fullName")
+        # Lấy tất cả thuộc tính của instance
+        doc = self.__dict__ 
+        # Xóa password hash nếu lỡ có
+        doc.pop("password_hash", None) 
+        return doc
 
-    def create(self, account_id, fullName, dob, gender, address, contactPhone, major, imageURL=None):
+    def save(self):
         """
-        Tạo một hồ sơ sinh viên mới.
-        Hàm này sẽ được gọi bởi Controller.
+        Lưu các thay đổi của object Student này vào CSDL
+        (Dùng cho các hàm 'updateProfile' của Controller)
         """
+        doc_data = self.to_doc()
+        # Dùng 'self.collection' kế thừa từ Account
+        self.collection.update_one(
+            {"_id": self._id},
+            {"$set": doc_data}
+        )
+
+    @classmethod
+    def create_student(cls, username, email, password, accountID, 
+                         fullName, dob, gender, address, contactPhone, major, imageURL=None):
+        """
+        Hàm Model để TẠO MỚI một student trong CSDL
+        """
+        password_hash = cls._hash_password(password)
+        student_doc = {
+            # Trường của Account
+            "username": username,
+            "email": email,
+            "password_hash": password_hash,
+            "role": "student",
+            "accountID": accountID,
+            "created_at": datetime.now(),
+            "last_login": None,
+            # Trường của Student
+            "fullName": fullName,
+            "dob": dob,
+            "gender": gender,
+            "address": address,
+            "contactPhone": contactPhone,
+            "major": major,
+            "imageURL": imageURL,
+            "fees": []
+        }
         try:
-            student_document = {
-                # Lưu account_id dưới dạng ObjectId để tham chiếu
-                "account_id": ObjectId(account_id),  
-                "fullName": fullName,
-                "dob": dob,  # Nên là đối tượng datetime
-                "gender": gender,
-                "address": address,
-                "contactPhone": contactPhone,
-                "major": major,
-                "imageURL": imageURL,
-                "createdAt": datetime.now(),
-                "is_deleted": False,  # Dùng cho soft delete
-                "fees": []  # Mảng rỗng để chứa các khoản phí (embedded)
-            }
-            
-            result = self.collection.insert_one(student_document)
-            return str(result.inserted_id)
-
+            # Dùng 'cls.collection' kế thừa từ Account
+            result = cls.collection.insert_one(student_doc)
+            student_doc["_id"] = result.inserted_id
+            return Student(**student_doc) # Trả về 1 đối tượng Student
         except Exception as e:
             print(f"Error creating student: {e}")
-            return None
-
-    def _format_student(self, student):
-        """
-        Hàm helper để chuyển đổi ObjectId sang string cho an toàn
-        """
-        if student:
-            student["_id"] = str(student["_id"])
-            if "account_id" in student:
-                student["account_id"] = str(student["account_id"])
-            # Bạn cũng có thể convert các ObjectId bên trong 'fees' nếu cần
-        return student
-
-    def get_by_id(self, student_id):
-        """
-        Lấy sinh viên bằng _id (dạng string)
-        """
-        try:
-            query = {"_id": ObjectId(student_id), "is_deleted": False}
-            student = self.collection.find_one(query)
-            return self._format_student(student)
-        except Exception:
-            return None
-
-    def get_by_account_id(self, account_id):
-        """
-        Lấy sinh viên bằng account_id (dạng string)
-        """
-        try:
-            query = {"account_id": ObjectId(account_id), "is_deleted": False}
-            student = self.collection.find_one(query)
-            return self._format_student(student)
-        except Exception:
-            return None
-
-    def get_all(self, major_filter=None):
-        """
-        Lấy tất cả sinh viên (chưa bị xóa)
-        """
-        query = {"is_deleted": False}
-        if major_filter:
-            query["major"] = major_filter
-
-        students = self.collection.find(query)
-        return [self._format_student(student) for student in students]
-
-    def update_profile(self, student_id, update_data):
-        """
-        Cập nhật thông tin cơ bản cho sinh viên.
-        'update_data' là một dict, ví dụ: {"address": "...", "contactPhone": "..."}
-        """
-        try:
-            self.collection.update_one(
-                {"_id": ObjectId(student_id), "is_deleted": False},
-                {"$set": update_data}
-            )
-            return True
-        except Exception as e:
-            print(f"Error updating student profile: {e}")
-            return False
-
-    def soft_delete(self, student_id):
-        """
-        Thực hiện xóa mềm (soft delete)
-        """
-        return self.update_profile(student_id, {"is_deleted": True})
-
-    # --- Quản lý Fees (Embedded Document) ---
-
-    def add_fee(self, student_id, description, amount, dueDate, period):
-        """
-        Thêm một khoản phí mới vào mảng 'fees' của sinh viên
-        """
-        try:
-            # Tự tạo ObjectId cho document nhúng để dễ dàng truy vấn sau này
-            fee_id = ObjectId()
-            new_fee = {
-                "_id": fee_id,
-                "feeID": str(fee_id), # Có thể dùng _id làm feeID
-                "description": description,
-                "amount": amount,
-                "status": "pending",
-                "dueDate": dueDate, # Nên là datetime
-                "period": period,
-                "createdAt": datetime.now(),
-                "transactions": [] # Sẵn sàng để chứa transactions
-            }
-
-            self.collection.update_one(
-                {"_id": ObjectId(student_id)},
-                {"$push": {"fees": new_fee}}
-            )
-            return str(fee_id) # Trả về ID của khoản phí vừa tạo
-
-        except Exception as e:
-            print(f"Error adding fee: {e}")
-            return None
-
-    def update_fee_status(self, student_id, fee_id, new_status):
-        """
-        Cập nhật trạng thái của một khoản phí (ví dụ: 'pending' -> 'paid')
-        """
-        try:
-            # Sử dụng positional operator '$' để cập nhật đúng document trong mảng
-            result = self.collection.update_one(
-                {"_id": ObjectId(student_id), "fees._id": ObjectId(fee_id)},
-                {"$set": {"fees.$.status": new_status}}
-            )
-            return result.matched_count > 0
-        except Exception as e:
-            print(f"Error updating fee status: {e}")
-            return False
-    
-    def add_transaction_to_fee(self, student_id, fee_id, transaction_data):
-        """
-        Thêm một giao dịch vào một khoản phí cụ thể
-        'transaction_data' là một dict (amount, method, date...)
-        """
-        try:
-            # Gán ID cho transaction
-            transaction_data["_id"] = ObjectId()
-            transaction_data["transactionID"] = str(transaction_data["_id"])
-            transaction_data["date"] = transaction_data.get("date", datetime.now())
-
-            result = self.collection.update_one(
-                {"_id": ObjectId(student_id), "fees._id": ObjectId(fee_id)},
-                {"$push": {"fees.$.transactions": transaction_data}}
-            )
-            return str(transaction_data["_id"]) if result.matched_count > 0 else None
-        except Exception as e:
-            print(f"Error adding transaction: {e}")
             return None
