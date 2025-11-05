@@ -2,37 +2,63 @@
 from database import db
 from bson.objectid import ObjectId
 import datetime
-import bcrypt
+import hashlib
+import os  # Cần thiết để tạo salt ngẫu nhiên
 
 # Tải collection một lần
 try:
     ACCOUNTS_COLLECTION = db.get_db()['accounts']
 except Exception as e:
     print(f"Lỗi khi kết nối tới collection 'accounts': {e}")
-    # Có thể bạn muốn thoát chương trình nếu không kết nối được DB
     exit(1)
 
 def hash_password(password):
-    """Băm mật khẩu an toàn"""
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    """Băm mật khẩu an toàn với salt dùng hashlib.SHA256"""
+    # Tạo một salt ngẫu nhiên
+    salt = os.urandom(16).hex()
+    
+    # Băm mật khẩu với (salt + password)
+    hashed_password = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
+    
+    # Lưu salt và hash chung một chuỗi, phân cách bằng $
+    # Định dạng này rất phổ biến và dễ dàng parse
+    return f"{salt}${hashed_password}"
 
-def check_password(password, hashed):
-    """Kiểm tra mật khẩu có khớp với
-    hash không"""
-    return bcrypt.checkpw(password.encode('utf-8'), hashed)
+def check_password(password, stored_hash):
+    """Kiểm tra mật khẩu có khớp với hash đã lưu không"""
+    try:
+        # Tách salt và hash đã lưu
+        salt, hash_key = stored_hash.split('$')
+        
+        # Hash lại mật khẩu được cung cấp với salt đã lưu
+        password_hash = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
+        
+        # So sánh an toàn
+        return hashlib.compare_digest(password_hash, hash_key)
+    except Exception as e:
+        # Lỗi (ví dụ: chuỗi hash không đúng định dạng, rỗng, v.v.)
+        print(f"Lỗi khi kiểm tra mật khẩu: {e}")
+        return False
 
 
 class Account:
     """Lớp cơ sở cho tất cả các loại tài khoản (Admin, Student)"""
     
-    def __init__(self, username, email, role, password=None, _id=None, createAt=None):
+    def __init__(self, username, email, role, password=None, _id=None, createAt=None, **kwargs):
         self._id = _id
         self.username = username
         self.email = email
         self.role = role
         
-        # Chỉ hash mật khẩu khi nó được cung cấp (tức là khi tạo mới hoặc cập nhật)
+        # Gán các thuộc tính khác (nếu có, từ lớp con)
+        # ví dụ: fullName, dob... sẽ được gán ở đây
+        for key, value in kwargs.items():
+            if key not in ('password_hash'): # Tránh ghi đè hash
+                setattr(self, key, value)
+
+        # Xử lý mật khẩu
         if password:
+            # Băm mật khẩu mới khi được cung cấp
             self.password_hash = hash_password(password)
         elif _id is None:
             # Nếu tạo mới mà không có pass, raise lỗi
@@ -42,6 +68,7 @@ class Account:
             # nhưng chúng ta cần lấy hash đã lưu
             if not hasattr(self, 'password_hash'):
                 account_data = ACCOUNTS_COLLECTION.find_one({'_id': self._id})
+                # Gán trực tiếp hash đã lưu từ DB
                 self.password_hash = account_data.get('password_hash')
                 
         self.createAt = createAt or datetime.datetime.utcnow()
@@ -65,7 +92,7 @@ class Account:
             )
         else:
             # Thêm mới
-            # Đảm bảo không lưu password gốc
+            # Đảm bảo không lưu password gốc (nếu còn tồn)
             account_data.pop('password', None)
             result = ACCOUNTS_COLLECTION.insert_one(account_data)
             self._id = result.inserted_id
@@ -96,6 +123,7 @@ class Account:
         """Xác thực người dùng và trả về đối tượng (Student hoặc Admin)"""
         account = cls.find_by_username(username)
         
+        # `account.password_hash` sẽ chứa chuỗi "salt$hash"
         if account and check_password(password, account.password_hash):
             return account  # Đây sẽ là instance của Student hoặc Admin
         
@@ -124,6 +152,8 @@ class Account:
         from student import Student
         from admin import Admin
 
+        # **kwargs sẽ truyền toàn bộ dict dữ liệu vào constructor
+        # của Student hoặc Admin
         if role == 'student':
             return Student(**account_data)
         elif role == 'admin':
