@@ -79,11 +79,11 @@ class Account:
 
         return account
 
-    def update_password(self, email, new_password):
+    def update_password(self, accountname, new_password):
         """Update account password"""
         try:
             self.collection.update_one(
-                {"email": email},
+                {"accountname": accountname},
                 {"$set": {"password_hash": self.hash_password(new_password)}},
             )
             return True
