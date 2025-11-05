@@ -1,52 +1,44 @@
-# models/admin.py
-from models.account import Account # Import lớp Cha
 from datetime import datetime
+from typing import Dict
 
-class Admin(Account):
-    def __init__(self, createdAt=None, **kwargs):
-        """
-        Khởi tạo Admin.
-        **kwargs sẽ chứa các trường của Account (username, email...)
-        """
-        # Gán cứng role='admin' và gọi hàm __init__ của Cha
-        super().__init__(role="admin", **kwargs)
-        
-        # Thuộc tính riêng của Admin từ sơ đồ
-        self.createdAt = createdAt or self.created_at 
 
-    def to_doc(self):
-        """
-        Chuyển object Admin thành 1 document để lưu vào DB
-        """
-        return {
-            "_id": self._id,
-            "username": self.username,
-            "email": self.email,
-            "role": self.role,
-            "accountID": self.accountID,
-            "createdAt": self.createdAt
-        }
+class Admin:
+    """
+    Model class đại diện cho Admin trong hệ thống
+    Chứa các thuộc tính và phương thức xử lý nghiệp vụ liên quan đến Admin
+    """
 
-    @classmethod
-    def create_admin(cls, username, email, password, accountID):
+    def __init__(self, db_connection):
         """
-        Hàm Model để TẠO MỚI một admin trong CSDL
+        Khởi tạo Admin model với kết nối database
+
+        Args:
+            db_connection: MongoDB database connection
         """
-        password_hash = cls._hash_password(password)
-        admin_doc = {
+        self.db = db_connection
+        self.collection = self.db["admins"]
+
+    def create_admin(self, username: str, password: str, email: str) -> Dict:
+        """
+        Tạo mới một admin account
+
+        Args:
+            username: Tên đăng nhập
+            password: Mật khẩu (đã được hash)
+            email: Email admin
+
+        Returns:
+            Dict chứa thông tin admin vừa tạo
+        """
+        admin_data = {
             "username": username,
+            "password": password,
             "email": email,
-            "password_hash": password_hash,
             "role": "admin",
-            "accountID": accountID,
-            "createdAt": datetime.now(),
-            "last_login": None
+            "createAt": datetime.now(),
         }
-        try:
-            # Dùng 'cls.collection' kế thừa từ Account
-            result = cls.collection.insert_one(admin_doc)
-            admin_doc["_id"] = result.inserted_id
-            return Admin(**admin_doc) # Trả về 1 đối tượng Admin
-        except Exception as e:
-            print(f"Error creating admin: {e}")
-            return None
+
+        result = self.collection.insert_one(admin_data)
+        admin_data["_id"] = result.inserted_id
+
+        return admin_data
