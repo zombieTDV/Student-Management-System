@@ -1,80 +1,85 @@
-from models.account import Account # Import lớp Cha
-from datetime import datetime
-from bson import ObjectId
+# models/student.py
+from account import Account
+from database import db
+from bson.objectid import ObjectId
+import datetime
 
 class Student(Account):
-    def __init__(self, fullName, dob, gender, address, contactPhone, major, 
-                 imageURL=None, fees=None, **kwargs):
+    
+    def __init__(self, fullName, dob, gender, address, contact, major, 
+                 imageURL=None, **kwargs):
         """
         Khởi tạo Student.
-        **kwargs sẽ chứa các trường của Account (username, email...)
+        **kwargs sẽ chứa các thuộc tính của Account (username, email, v.v.)
         """
-        # Gán cứng role='student' và gọi hàm __init__ của Cha
-        super().__init__(role="student", **kwargs)
+        # Gọi __init__ của lớp cha (Account)
+        super().__init__(role='student', **kwargs)
         
         # Các thuộc tính riêng của Student
         self.fullName = fullName
         self.dob = dob
         self.gender = gender
         self.address = address
-        self.contactPhone = contactPhone
+        self.contact = contact
         self.major = major
         self.imageURL = imageURL
-        self.fees = fees or [] # Mảng nhúng (embedded)
 
-    def to_doc(self):
-        """
-        Chuyển object Student thành 1 document để lưu vào DB
-        """
-        # Lấy tất cả thuộc tính của instance
-        doc = self.__dict__ 
-        # Xóa password hash nếu lỡ có
-        doc.pop("password_hash", None) 
-        return doc
+    # Ghi đè phương thức save() để đảm bảo tất cả dữ liệu được lưu
+    # (Thực ra lớp cha Account.save() đã xử lý việc này bằng vars(self))
+    # Nhưng nếu bạn muốn logic lưu riêng biệt, hãy định nghĩa nó ở đây.
+    # def save(self):
+    #     # ...
+    #     super().save()
 
-    def save(self):
-        """
-        Lưu các thay đổi của object Student này vào CSDL
-        (Dùng cho các hàm 'updateProfile' của Controller)
-        """
-        doc_data = self.to_doc()
-        # Dùng 'self.collection' kế thừa từ Account
-        self.collection.update_one(
-            {"_id": self._id},
-            {"$set": doc_data}
-        )
+    # --- Các phương thức từ UML (giờ là instance methods) ---
 
-    @classmethod
-    def create_student(cls, username, email, password, accountID, 
-                         fullName, dob, gender, address, contactPhone, major, imageURL=None):
+    def updateProfile(self, new_data):
         """
-        Hàm Model để TẠO MỚI một student trong CSDL
+        Cập nhật thông tin hồ sơ của sinh viên.
+        new_data là một dict chứa các trường cần cập nhật.
         """
-        password_hash = cls._hash_password(password)
-        student_doc = {
-            # Trường của Account
-            "username": username,
-            "email": email,
-            "password_hash": password_hash,
-            "role": "student",
-            "accountID": accountID,
-            "created_at": datetime.now(),
-            "last_login": None,
-            # Trường của Student
-            "fullName": fullName,
-            "dob": dob,
-            "gender": gender,
-            "address": address,
-            "contactPhone": contactPhone,
-            "major": major,
-            "imageURL": imageURL,
-            "fees": []
-        }
-        try:
-            # Dùng 'cls.collection' kế thừa từ Account
-            result = cls.collection.insert_one(student_doc)
-            student_doc["_id"] = result.inserted_id
-            return Student(**student_doc) # Trả về 1 đối tượng Student
-        except Exception as e:
-            print(f"Error creating student: {e}")
-            return None
+        allowed_updates = ['fullName', 'dob', 'gender', 'address', 'contact', 'major', 'imageURL']
+        update_fields = {}
+        
+        for key, value in new_data.items():
+            if key in allowed_updates:
+                setattr(self, key, value)  # Cập nhật trên đối tượng Python
+                update_fields[key] = value
+        
+        if update_fields:
+            # Gọi save() để lưu toàn bộ thay đổi vào DB
+            self.save()
+            print(f"Profile cho sinh viên {self.username} đã được cập nhật.")
+            return True
+        return False
+
+    def viewFinancial(self):
+        """
+        Xem thông tin tài chính (Học phí và Giao dịch).
+        """
+        fees_collection = db.get_db()['fees']
+        transactions_collection = db.get_db()['transactions']
+        
+        # Tìm tất cả học phí và giao dịch liên quan đến _id này
+        fees = list(fees_collection.find({'student_id': self._id}))
+        transactions = list(transactions_collection.find({'student_id': self._id}))
+        
+        return {'fees': fees, 'transactions': transactions}
+
+    def changePassword(self, new_password):
+        """
+        Sinh viên tự đổi mật khẩu của mình.
+        Phương thức này đến từ lớp cha Account.
+        """
+        print(f"Sinh viên {self.username} đang đổi mật khẩu...")
+        return self.update_password(new_password)
+
+    def viewNotification(self):
+        """
+        Xem thông báo (Announcements).
+        """
+        announcements_collection = db.get_db()['announcements']
+        
+        # Tìm tất cả thông báo, sắp xếp theo ngày tạo mới nhất
+        notifications = list(announcements_collection.find().sort('createAt', -1))
+        return notifications
