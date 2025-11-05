@@ -5,6 +5,7 @@ from controllers.auth_controller import AuthController
 # from controllers.notification_controller import NotificationController
 from views.login import LoginNotificationApp
 from views.student_dashboard import StudentDashboard
+from views.admin_dashboard import AdminDashboard
 
 from views.forgot_password import ForgotPasswordApp
 
@@ -62,6 +63,13 @@ class MainApp:
             self.show_login,
             # self.handle_password_recovery
         )
+
+    def show_admin_dashboard(self):
+        """Show admin dashboard view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = AdminDashboard(self.container, self.show_login)
 
     def handle_password_recovery(self, email):
         """Handle password recovery through controller"""

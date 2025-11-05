@@ -1,12 +1,11 @@
 # models/account.py
-from models.database import db
 import hashlib
 from datetime import datetime
 
 
 class Account:
     def __init__(self):
-        self.collection = db.get_db()["accounts"]
+        pass
 
     def create_indexes(self):
         """Create unique indexes"""
@@ -52,7 +51,7 @@ class Account:
             account["_id"] = str(account["_id"])
             # Remove password hash from returned data
             del account["password_hash"]
-
+            print(account)
             return account
 
         return None
