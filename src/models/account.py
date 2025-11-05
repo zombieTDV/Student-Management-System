@@ -1,98 +1,94 @@
-# models/account.py
+from models.database import db
 import hashlib
 from datetime import datetime
+from bson import ObjectId
 
+# 2. Lấy CSDL thực sự bằng cách gọi phương thức .get_db()
+# _db này là kết nối CSDL (tương đương với client[MONGO_DB])
+_db = db.get_db() 
 
 class Account:
-    def __init__(self):
-        pass
+    """
+    Lớp Cha (Base Class) cho tất cả các loại tài khoản.
+    Quản lý collection 'users'.
+    """
+    
+    # 3. Sử dụng _db để trỏ tới collection
+    collection = _db["users"] 
 
-    def create_indexes(self):
-        """Create unique indexes"""
-        self.collection.create_index("accountname", unique=True)
-        self.collection.create_index("email", unique=True)
+    def __init__(self, username, email, role, _id=None, accountID=None, created_at=None, **kwargs):
+        self._id = _id
+        self.username = username
+        self.email = email
+        self.role = role
+        self.accountID = accountID
+        self.created_at = created_at or datetime.now()
+        # **kwargs sẽ chứa các trường khác từ CSDL
 
-    def hash_password(self, password):
-        """Hash password using SHA256"""
+    @staticmethod
+    def _hash_password(password):
+        """Hàm static để hash password"""
         return hashlib.sha256(password.encode()).hexdigest()
 
-    def create_account(self, accountname, email, password):
-        """Create new account"""
-        try:
-            account = {
-                "accountname": accountname,
-                "email": email,
-                "password_hash": self.hash_password(password),
-                "created_at": datetime.now(),
-                "last_login": None,
-            }
-
-            result = self.collection.insert_one(account)
-            return str(result.inserted_id)
-
-        except Exception as e:
-            print(f"Error creating account: {e}")
-            return None
-
-    def authenticate(self, accountname, password):
-        """Authenticate account"""
-        password_hash = self.hash_password(password)
-        account = self.collection.find_one(
-            {"accountname": accountname, "password_hash": password_hash}
+    @classmethod
+    def authenticate(cls, username, password):
+        """
+        Logic cho hàm 'login()'.
+        """
+        password_hash = cls._hash_password(password)
+        doc = cls.collection.find_one(
+            {"username": username, "password_hash": password_hash}
         )
 
-        if account:
-            # Update last login
-            self.collection.update_one(
-                {"_id": account["_id"]}, {"$set": {"last_login": datetime.now()}}
+        if doc:
+            cls.collection.update_one(
+                {"_id": doc["_id"]}, {"$set": {"last_login": datetime.now()}}
             )
-
-            # Convert ObjectId to string
-            account["_id"] = str(account["_id"])
-            # Remove password hash from returned data
-            del account["password_hash"]
-            print(account)
-            return account
-
+            return cls.build_object_from_doc(doc)
+        
         return None
 
-    def get_by_email(self, email):
-        """Get account by email"""
-        account = self.collection.find_one({"email": email})
+    @classmethod
+    def find_by_username(cls, username):
+        doc = cls.collection.find_one({"username": username})
+        return cls.build_object_from_doc(doc)
 
-        if account:
-            account["_id"] = str(account["_id"])
-            if "password_hash" in account:
-                del account["password_hash"]
-
-        return account
-
-    def get_by_accountname(self, accountname):
-        """Get account by accountname"""
-        account = self.collection.find_one({"accountname": accountname})
-
-        if account:
-            account["_id"] = str(account["_id"])
-            if "password_hash" in account:
-                del account["password_hash"]
-
-        return account
-
-    def update_password(self, accountname, new_password):
-        """Update account password"""
+    @classmethod
+    def find_by_id(cls, user_id):
         try:
-            self.collection.update_one(
-                {"accountname": accountname},
-                {"$set": {"password_hash": self.hash_password(new_password)}},
-            )
-            return True
-        except Exception as e:
-            print(f"Error updating password: {e}")
-            return False
+            doc = cls.collection.find_one({"_id": ObjectId(user_id)})
+            return cls.build_object_from_doc(doc)
+        except Exception:
+            return None # Nếu user_id không phải ObjectId hợp lệ
 
+    @classmethod
+    def build_object_from_doc(cls, doc):
+        """
+        Quyết định tạo object Admin hay Student dựa trên 'role'
+        """
+        if not doc:
+            return None
+        
+        # Import BÊN TRONG hàm để tránh lỗi Circular Import
+        from models.admin import Admin
+        from models.student import Student
 
-# a = Account()
-# a.create_account("sv", "sv@", "sv123")
-# print(a.authenticate("admin", "admin123"))
+        if doc.get("role") == "admin":
+            return Admin(**doc)
+        elif doc.get("role") == "student":
+            return Student(**doc)
+        
+        return None
 
-# print(a.hash_password("admin123"))
+    def update_password(self, new_password):
+        """
+        Cập nhật password cho chính user này
+        """
+        if not self._id:
+            raise ValueError("Không thể cập nhật password cho user chưa được lưu")
+            
+        new_hash = self._hash_password(new_password)
+        self.collection.update_one(
+            {"_id": self._id},
+            {"$set": {"password_hash": new_hash}}
+        )
