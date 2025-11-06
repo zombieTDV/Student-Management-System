@@ -2,9 +2,17 @@ import customtkinter as ctk
 
 
 class AdminDashboard:
-    def __init__(self, parent, back_callback=None):
+    def __init__(
+        self,
+        parent,
+        back_callback=None,
+        student_management_callback=None,
+        make_announcement_callback=None,
+    ):
         self.parent = parent
         self.back_callback = back_callback
+        self.student_management_callback = student_management_callback
+        self.make_announcement_callback = make_announcement_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -43,7 +51,7 @@ class AdminDashboard:
             width=200,
             height=80,
             corner_radius=15,
-            command=self.make_announcement,
+            command=self.make_announcement_callback,
         )
         announcement_btn.pack(side="right")
 
@@ -147,18 +155,13 @@ class AdminDashboard:
         border = ctk.CTkFrame(parent, fg_color="#B0B0B0", height=2)
         border.pack(fill="x", padx=0, pady=0)
 
-    def make_announcement(self):
-        """Handle make announcement"""
-        print("Make Announcement clicked")
-        # Create popup or navigate to announcement page
-
     def manage_admin(self):
         """Handle admin management"""
         print("Admin management clicked")
 
     def manage_students(self):
         """Handle student management"""
-        print("Students management clicked")
+        self.student_management_callback()
 
     def manage_fee(self):
         """Handle fee management"""
