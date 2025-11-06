@@ -8,7 +8,7 @@ from models.account import Account  # Import lớp cha
 from models.admin import Admin
 from models.student import Student
 
-# Lấy các collection để dọn dẹp
+#  Lấy các collection để dọn dẹp
 db_conn = db.get_db()
 accounts_coll = db_conn["accounts"]
 announcements_coll = db_conn["announcements"]
