@@ -2,9 +2,10 @@ import customtkinter as ctk
 
 
 class ForgotPasswordApp:
-    def __init__(self, parent, back_callback=None):
+    def __init__(self, parent, back_callback=None, email_sent_callback=None):
         self.parent = parent
         self.back_callback = back_callback
+        self.email_sent_callback = email_sent_callback
 
         # Set theme and color
         ctk.set_appearance_mode("light")
@@ -87,4 +88,5 @@ class ForgotPasswordApp:
     def recover_password(self):
         email = self.email_entry.get()
         print(f"Password recovery requested for: {email}")
+        self.email_sent_callback()
         # Add your password recovery logic here
