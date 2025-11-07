@@ -1,4 +1,3 @@
-# models/account.py
 from models.database import db
 from bson.objectid import ObjectId
 import datetime
@@ -35,11 +34,8 @@ def check_password(password, stored_hash):
         # Hash lại mật khẩu được cung cấp với salt đã lưu
         password_hash = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
         
-        # --- THAY ĐỔI Ở ĐÂY ---
-        # Thay thế 'compare_digest' bằng so sánh == thông thường
-        # vì phiên bản Python của bạn không hỗ trợ nó.
         return password_hash == hash_key
-        # return hashlib.compare_digest(password_hash, hash_key) # Dòng cũ
+
         
     except Exception as e:
         # Lỗi (ví dụ: chuỗi hash không đúng định dạng, rỗng, v.v.)
