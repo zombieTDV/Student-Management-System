@@ -1,126 +1,156 @@
+# test.py
 import datetime
-from models.account import Account
+from models.database import db
+from models.account import Account  # Import lớp cha
+
+# Các lớp con sẽ được import động bên trong Account
+# nhưng chúng ta có thể import chúng ở đây để tạo mới
 from models.admin import Admin
 from models.student import Student
-from models.database import db # Import đối tượng db
+
+# Lấy các collection để dọn dẹp
+db_conn = db.get_db()
+accounts_coll = db_conn["accounts"]
+announcements_coll = db_conn["announcements"]
+fees_coll = db_conn["fees"]
+transactions_coll = db_conn["transactions"]
+
+
+def cleanup(admin_username, student_username):
+    print("\n--- 🧹 Bắt đầu dọn dẹp ---")
+    try:
+        admin = accounts_coll.find_one({"username": admin_username})
+        if admin:
+            announcements_coll.delete_many({"createBy": admin["_id"]})
+            print(f"Đã xóa announcements của {admin_username}")
+
+        student = accounts_coll.find_one({"username": student_username})
+        if student:
+            fees_coll.delete_many({"student_id": student["_id"]})
+            transactions_coll.delete_many({"student_id": student["_id"]})
+            print(f"Đã xóa financial của {student_username}")
+
+        # Xóa cả hai tài khoản
+        accounts_coll.delete_many(
+            {"username": {"$in": [admin_username, student_username]}}
+        )
+        print(f"Đã xóa tài khoản: {admin_username}, {student_username}")
+
+        print("--- ✅ Dọn dẹp hoàn tất ---")
+    except Exception as e:
+        print(f"Lỗi khi dọn dẹp: {e}")
+
 
 def run_tests():
-    print("--- [BẮT ĐẦU TEST] ---")
-    
-    # Lấy collection 'users' và xóa sạch để test lại từ đầu
-    # BẠN CÓ THỂ BỎ QUA DÒNG NÀY NẾU MUỐN GIỮ LẠI DỮ LIỆU CŨ
-    print("\n[Bước 0: Dọn dẹp CSDL...]")
-    user_collection = db.get_db()["users"]
-    user_collection.delete_many({})
-    print("Đã xóa hết user cũ.")
+    print("--- 🚀 Bắt đầu Test Run (Mô hình Kế thừa) ---")
 
-    # -------------------------------------------------
-    # TEST 1: TẠO MỚI (CREATE)
-    # -------------------------------------------------
-    print("\n[Bước 1: Test tạo Admin...]")
-    admin = Admin.create_admin(
-        username="admin01",
-        email="admin@test.com",
-        password="admin123",
-        accountID="AD001"
-    )
-    if admin:
-        print(f"✅ Tạo Admin thành công: {admin.username} (Role: {admin.role})")
-    else:
-        print("❌ Tạo Admin thất bại!")
+    ts = datetime.datetime.now().timestamp()
+    ADMIN_USER = f"test_admin_{ts}"
+    ADMIN_PASS = "admin_pass_123"
 
-    print("\n[Bước 2: Test tạo Student...]")
-    student = Student.create_student(
-        username="sv001",
-        email="sv@test.com",
-        password="sv123",
-        accountID="SV001",
-        fullName="Nguyễn Văn A",
-        dob=datetime.datetime(2003, 5, 15),
-        gender="Nam",
-        address="123 ABC, Q1, TPHCM",
-        contactPhone="0909123456",
-        major="Công nghệ thông tin"
-    )
-    if student:
-        print(f"✅ Tạo Student thành công: {student.fullName} (Role: {student.role})")
-    else:
-        print("❌ Tạo Student thất bại!")
+    STUDENT_USER = f"test_student_{ts}"
+    STUDENT_PASS = "student_pass_123"
 
-    # -------------------------------------------------
-    # TEST 2: ĐĂNG NHẬP VÀ TRUY VẤN (READ)
-    # -------------------------------------------------
-    print("\n[Bước 3: Test Đăng nhập (Authenticate)...]")
-    
-    print("  -> Thử đăng nhập Student (đúng pass):")
-    user_sv = Account.authenticate("sv001", "sv123")
-    if user_sv:
-        # Check xem nó có phải là 1 object Student không
-        print(f"✅ Đăng nhập thành công! User: {user_sv.username}, Role: {user_sv.role}")
-        print(f"   Tên đầy đủ: {user_sv.fullName}") # Chỉ Student mới có
-    else:
-        print("❌ Đăng nhập thất bại!")
+    test_admin_obj = None
+    test_student_obj = None
 
-    print("  -> Thử đăng nhập Admin (sai pass):")
-    user_admin_fail = Account.authenticate("admin01", "saipass")
-    if not user_admin_fail:
-        print("✅ Thất bại như mong đợi.")
-    else:
-        print("❌ Lỗi logic! Đăng nhập vẫn thành công dù sai pass.")
-
-    # -------------------------------------------------
-    # TEST 3: CẬP NHẬT (UPDATE)
-    # -------------------------------------------------
-    print("\n[Bước 4: Test Cập nhật (Update)...]")
-    
-    # 1. Tìm lại student
-    sv_to_update = Account.find_by_username("sv001")
-    
-    if sv_to_update:
-        print(f"  -> Tên gốc: {sv_to_update.fullName}")
-        
-        # 2. Thay đổi dữ liệu
-        sv_to_update.fullName = "Trần Thị B"
-        sv_to_update.address = "456 XYZ, Q.Thủ Đức"
-        
-        # 3. Gọi .save()
-        sv_to_update.save()
-        print("  -> Đã gọi hàm save()")
-
-        # 4. Kiểm tra lại bằng cách tìm lại từ CSDL
-        sv_check = Account.find_by_username("sv001")
-        if sv_check.fullName == "Trần Thị B":
-            print(f"✅ Cập nhật thành công! Tên mới: {sv_check.fullName}")
-        else:
-            print("❌ Cập nhật thất bại!")
-
-    # -------------------------------------------------
-    # TEST 4: NHÚNG (EMBEDDED)
-    # -------------------------------------------------
-    print("\n[Bước 5: Test thêm dữ liệu nhúng (Add Fee)...]")
-    
-    if sv_to_update:
-        print(f"  -> Số lượng phí ban đầu: {len(sv_to_update.fees)}")
-        
-        fee_data_1 = {
-            "description": "Học phí HK1",
-            "amount": 5000000,
-            "status": "pending",
-            "dueDate": datetime.datetime.now()
+    try:
+        # === 1. Tạo Admin Account ===
+        print(f"\n--- 1. Tạo Admin '{ADMIN_USER}' ---")
+        admin_data = {
+            "username": ADMIN_USER,
+            "password": ADMIN_PASS,
+            "email": f"{ADMIN_USER}@test.com",
         }
-        sv_to_update.add_fee(fee_data_1)
-        print("  -> Đã thêm 1 khoản phí.")
-        
-        # Kiểm tra lại
-        sv_check_2 = Account.find_by_username("sv001")
-        if len(sv_check_2.fees) == 1 and sv_check_2.fees[0]["amount"] == 5000000:
-            print(f"✅ Thêm phí thành công! Số phí hiện tại: {len(sv_check_2.fees)}")
-            print(f"   Mô tả phí: {sv_check_2.fees[0]['description']}")
-        else:
-            print("❌ Thêm phí thất bại!")
+        test_admin_obj = Admin(**admin_data)
+        test_admin_obj.save()
+        print(f"✅ Đã tạo Admin (ID: {test_admin_obj._id})")
 
-    print("\n--- [TEST HOÀN TẤT] ---")
+        # === 2. Đăng nhập với tư cách Admin ===
+        print("\n--- 2. Test: Admin.authenticate() ---")
+        authed_admin = Account.authenticate(ADMIN_USER, ADMIN_PASS)
+        assert authed_admin is not None
+        assert authed_admin.role == "admin"
+        assert isinstance(authed_admin, Admin)
+        print(f"✅ Xác thực Admin '{authed_admin.username}' thành công.")
 
-# --- Chạy hàm test ---
+        # === 3. Admin tạo Student ===
+        print("\n--- 3. Test: Admin.createStudent() ---")
+        student_profile = {
+            "fullName": "Nguyễn Văn Test Kế Thừa",
+            "dob": datetime.datetime(2002, 5, 15),
+            "gender": "Male",
+            "address": "789 Đường Kế Thừa",
+            "contact": "090111222",
+            "major": "Khoa học Kế thừa",
+        }
+        student_account = {
+            "username": STUDENT_USER,
+            "password": STUDENT_PASS,
+            "email": f"{STUDENT_USER}@test.com",
+        }
+
+        # Sử dụng đối tượng admin đã xác thực để tạo
+        test_student_obj = authed_admin.createStudent(student_profile, student_account)
+        assert test_student_obj is not None
+        assert test_student_obj.role == "student"
+        print(f"✅ Admin đã tạo Student '{test_student_obj.username}'")
+
+        # === 4. Đăng nhập với tư cách Student ===
+        print("\n--- 4. Test: Student.authenticate() ---")
+        authed_student = Account.authenticate(STUDENT_USER, STUDENT_PASS)
+        assert authed_student is not None
+        assert authed_student.fullName == "Nguyễn Văn Test Kế Thừa"
+        assert isinstance(authed_student, Student)
+        print(f"✅ Xác thực Student '{authed_student.username}' thành công.")
+
+        # === 5. Student tự cập nhật hồ sơ ===
+        print("\n--- 5. Test: Student.updateProfile() ---")
+        authed_student.updateProfile({"address": "Địa chỉ mới 123"})
+
+        # Tải lại từ DB để chắc chắn
+        reloaded_student = Account.find_by_id(authed_student._id)
+        assert reloaded_student.address == "Địa chỉ mới 123"
+        print("✅ Student.updateProfile() thành công.")
+
+        # === 6. Student đổi mật khẩu ===
+        print("\n--- 6. Test: Student.changePassword() ---")
+        NEW_PASS = "new_pass_456"
+        authed_student.changePassword(NEW_PASS)
+
+        # Thử đăng nhập lại bằng pass mới
+        authed_student_newpass = Account.authenticate(STUDENT_USER, NEW_PASS)
+        assert authed_student_newpass is not None
+
+        # Thử đăng nhập bằng pass cũ (phải thất bại)
+        authed_student_oldpass = Account.authenticate(STUDENT_USER, STUDENT_PASS)
+        assert authed_student_oldpass is None
+        print("✅ Student.changePassword() thành công (pass mới OK, pass cũ FAILED).")
+
+        # === 7. Admin đăng thông báo ===
+        print(
+            "\n--- 7. Test: Admin.postAnnouncement() & Student.viewNotification() ---"
+        )
+        authed_admin.postAnnouncement("Test thông báo", "Nội dung...")
+
+        notifications = authed_student.viewNotification()
+        assert len(notifications) > 0
+        assert notifications[0]["title"] == "Test thông báo"
+        print("✅ Đăng và xem thông báo thành công.")
+
+    except Exception as e:
+        print(f"\n❌❌❌ TEST THẤT BẠI: {e} ❌❌❌")
+        import traceback
+
+        traceback.print_exc()
+
+    finally:
+        # Luôn chạy dọn dẹp
+        cleanup(ADMIN_USER, STUDENT_USER)
+        # Đóng kết nối DB
+        db.close()
+
+
+# Chạy test
 if __name__ == "__main__":
     run_tests()

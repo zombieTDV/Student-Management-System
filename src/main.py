@@ -6,6 +6,9 @@ from controllers.auth_controller import AuthController
 from views.login import LoginNotificationApp
 from views.student_dashboard import StudentDashboard
 from views.admin_dashboard import AdminDashboard
+from views.student_management import StudentManagement
+from views.make_anoucements import MakeAnnouncement
+from views.email_sent import EmailSent
 
 from views.forgot_password import ForgotPasswordApp
 
@@ -62,6 +65,18 @@ class MainApp:
             self.container,
             self.show_login,
             # self.handle_password_recovery
+            self.show_email_sent,
+        )
+
+    def show_email_sent(self):
+        """Show the succesed email sent message"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = EmailSent(
+            self.container,
+            self.show_login,
+            # self.handle_password_recovery
         )
 
     def show_admin_dashboard(self):
@@ -69,7 +84,30 @@ class MainApp:
         for widget in self.container.winfo_children():
             widget.destroy()
 
-        self.current_frame = AdminDashboard(self.container, self.show_login)
+        self.current_frame = AdminDashboard(
+            self.container,
+            self.show_login,
+            self.show_student_management,
+            self.show_make_announcement,
+        )
+
+    def show_student_management(self):
+        """Show student management view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = StudentManagement(
+            self.container, self.show_admin_dashboard
+        )
+
+    def show_make_announcement(self):
+        """Show make announcement view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = MakeAnnouncement(
+            self.container, self.show_admin_dashboard  # Back callback
+        )
 
     def handle_password_recovery(self, email):
         """Handle password recovery through controller"""
