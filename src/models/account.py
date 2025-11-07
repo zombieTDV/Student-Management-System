@@ -1,3 +1,4 @@
+# models/account.py
 from models.database import db
 from bson.objectid import ObjectId
 import datetime
@@ -29,14 +30,13 @@ def check_password(password, stored_hash):
     """Kiểm tra mật khẩu có khớp với hash đã lưu không"""
     try:
         # Tách salt và hash đã lưu
-        salt, hash_key = stored_hash.split('$')
-        
-        # Hash lại mật khẩu được cung cấp với salt đã lưu
-        password_hash = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
-        
-        return password_hash == hash_key
+        salt, hash_key = stored_hash.split("$")
 
-        
+        # Hash lại mật khẩu được cung cấp với salt đã lưu
+        password_hash = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
+
+        # So sánh an toàn
+        return hashlib.compare_digest(password_hash, hash_key)
     except Exception as e:
         # Lỗi (ví dụ: chuỗi hash không đúng định dạng, rỗng, v.v.)
         print(f"Lỗi khi kiểm tra mật khẩu: {e}")

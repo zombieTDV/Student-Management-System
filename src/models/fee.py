@@ -1,15 +1,23 @@
 from models.database import db
 from bson.objectid import ObjectId
-import datetime
 
 try:
-    FEES_COLLECTION = db.get_db()['fees']
+    FEES_COLLECTION = db.get_db()["fees"]
 except Exception as e:
     print(f"Lỗi khi kết nối collection 'fees': {e}")
 
+
 class Fee:
-    
-    def __init__(self, description, amount, student_id, dueDate, period, status='pending', _id=None):
+    def __init__(
+        self,
+        description,
+        amount,
+        student_id,
+        dueDate,
+        period,
+        status="pending",
+        _id=None,
+    ):
         """
         Khởi tạo một khoản Học phí.
         'student_id' là _id của Student nợ khoản phí này.
@@ -25,18 +33,18 @@ class Fee:
     def save(self):
         """Lưu (hoặc cập nhật) khoản phí vào DB"""
         data = vars(self)
-        
+
         if self._id:
-            FEES_COLLECTION.update_one({'_id': self._id}, {'$set': data})
+            FEES_COLLECTION.update_one({"_id": self._id}, {"$set": data})
         else:
-            data.pop('_id', None)
+            data.pop("_id", None)
             result = FEES_COLLECTION.insert_one(data)
             self._id = result.inserted_id
         return self._id
-    
+
     def markPaid(self):
         """Đánh dấu khoản phí này là 'paid' (từ UML)"""
-        self.status = 'paid'
+        self.status = "paid"
         self.save()
         print(f"Học phí {self._id} đã được đánh dấu 'paid'.")
 
@@ -44,12 +52,12 @@ class Fee:
     def find_by_id(cls, fee_id):
         """Tìm học phí bằng ID"""
         try:
-            data = FEES_COLLECTION.find_one({'_id': ObjectId(fee_id)})
+            data = FEES_COLLECTION.find_one({"_id": ObjectId(fee_id)})
             return cls(**data) if data else None
         except Exception as e:
             print(f"Lỗi tìm học phí: {e}")
             return None
-    
+
     @classmethod
     def find_by_student_id(cls, student_id):
         """
@@ -59,10 +67,10 @@ class Fee:
         # Đảm bảo student_id là ObjectId
         if not isinstance(student_id, ObjectId):
             student_id = ObjectId(student_id)
-            
-        cursor = FEES_COLLECTION.find({'student_id': student_id})
+
+        cursor = FEES_COLLECTION.find({"student_id": student_id})
         return [cls(**data) for data in cursor]
-    
+
     def __repr__(self):
         """Hiển thị dạng chuỗi (để debug)"""
         return f"<Fee {self.description} ({self.status}) for {self.student_id}>"
