@@ -1,15 +1,17 @@
 import customtkinter as ctk
+import tkinter as tk  # Import tkinter for BooleanVar
 
 
-class PaymentScreen:
+class PaymentApp:
     def __init__(self, parent, back_callback=None, student_data=None, fee_data=None):
         self.parent = parent
         self.back_callback = back_callback
         self.student_data = student_data or {}
+        # This is the original list of all available fees
         self.fee_data = fee_data or []
 
-        # This frame will hold all fee item widgets
-        self.fee_item_frames = {}
+        # This dict will hold all fee item widgets and their tick status
+        self.fee_items = {}
         self.total_fee = 0
 
         # Set theme
@@ -31,20 +33,17 @@ class PaymentScreen:
         header_frame.pack(fill="x", padx=40, pady=(40, 20))
 
         # Back button on the left (using same style as FinancialSummaryApp)
+        # Back arrow button
+        back_arrow = ctk.CTkLabel(
+            header_frame,
+            text="🔙",
+            font=ctk.CTkFont(size=70, weight="bold"),
+            text_color="#FF7B7B",
+            cursor="hand2",
+        )
+        back_arrow.pack(side="left", padx=(0, 30))
         if back_callback:
-            back_btn = ctk.CTkButton(
-                header_frame,
-                text="← Back",
-                font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
-                fg_color="#AA00FF",
-                hover_color="#8800CC",
-                text_color="white",
-                width=120,
-                height=50,
-                corner_radius=10,
-                command=self.back_callback,
-            )
-            back_btn.pack(side="left", padx=(0, 20))
+            back_arrow.bind("<Button-1>", lambda e: back_callback())
 
         # Title
         title_label = ctk.CTkLabel(
@@ -99,7 +98,7 @@ Major:          {self.student_data.get('major', '...')}
         # Title for fee list
         list_title_label = ctk.CTkLabel(
             fee_list_container,
-            text="Lists of fees",
+            text="Lists of fees (select to pay)",  # Updated title
             font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
             text_color="black",
         )
@@ -149,72 +148,65 @@ Major:          {self.student_data.get('major', '...')}
         self.update_total()
 
     def add_fee_item(self, item_data):
-        """Adds a new fee item row to the scrollable frame"""
-        item_id = item_data.get("id", f"item_{len(self.fee_item_frames)}")
+        """Adds a new fee item row to the scrollable frame with a checkbox"""
+        item_id = item_data.get("id", f"item_{len(self.fee_items)}")
         name = item_data.get("name", "Unknown Fee")
         fee_str = item_data.get("fee", "0")
 
         item_frame = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         item_frame.pack(fill="x", pady=5)
 
-        item_label_text = f"• {name}: {self.format_number(self.parse_number(fee_str))}"
-        item_label = ctk.CTkLabel(
+        # Variable to hold the checkbox state (default to True/ticked)
+        checkbox_var = tk.BooleanVar(value=True)
+
+        item_label_text = f"{name}: {self.format_number(self.parse_number(fee_str))}"
+
+        # Create Checkbox instead of Label and Button
+        checkbox = ctk.CTkCheckBox(
             item_frame,
             text=item_label_text,
+            variable=checkbox_var,
             font=ctk.CTkFont(family="Arial", size=16),
             text_color="black",
+            command=self.update_total,  # Update total whenever ticked/unticked
         )
-        item_label.pack(side="left", fill="x", expand=True, padx=10)
+        checkbox.pack(side="left", fill="x", expand=True, padx=10)
 
-        remove_btn = ctk.CTkButton(
-            item_frame,
-            text="X",
-            font=ctk.CTkFont(family="Arial", size=12, weight="bold"),
-            fg_color="#EF4444",
-            hover_color="#B91C1C",
-            text_color="white",
-            width=25,
-            height=25,
-            corner_radius=5,
-            # Use lambda to pass item_id to the remove function
-            command=lambda id=item_id: self.remove_fee_item(id),
-        )
-        remove_btn.pack(side="right", padx=10)
+        # Store the frame, data, and checkbox variable
+        self.fee_items[item_id] = {
+            "frame": item_frame,
+            "data": item_data,
+            "var": checkbox_var,
+        }
 
-        # Store the frame and data for later
-        self.fee_item_frames[item_id] = {"frame": item_frame, "data": item_data}
-
-    def remove_fee_item(self, item_id):
-        """Removes a fee item from the list and updates the total"""
-        if item_id in self.fee_item_frames:
-            # Remove from UI
-            self.fee_item_frames[item_id]["frame"].destroy()
-
-            # Remove from data
-            item_data = self.fee_item_frames.pop(item_id)["data"]
-
-            # Find and remove from the original self.fee_data list
-            self.fee_data = [
-                item for item in self.fee_data if item.get("id") != item_id
-            ]
-
-            print(f"Removed item: {item_data.get('name')}")
-
-            # Update total
-            self.update_total()
+    # This function is no longer needed
+    # def remove_fee_item(self, item_id):
+    #     ...
 
     def update_total(self):
-        """Recalculates and updates the total fee label"""
-        self.total_fee = sum(
-            self.parse_number(item.get("fee", "0")) for item in self.fee_data
-        )
+        """Recalculates and updates the total fee label based on ticked items"""
+        total = 0
+        # Iterate over all stored fee items
+        for item_id, item in self.fee_items.items():
+            # Check if the item's checkbox variable is ticked (True)
+            if item["var"].get():
+                # If ticked, add its fee to the total
+                total += self.parse_number(item["data"].get("fee", "0"))
 
+        self.total_fee = total
         self.total_label.configure(text=f"Total: {self.format_number(self.total_fee)}")
 
     def pay_action(self):
         """Action to perform when 'Pay' is clicked"""
         print(f"Attempting to pay: {self.format_number(self.total_fee)}")
-        # You can add a success/confirmation popup here
+
+        # Log which items are being paid for
+        paid_items = []
+        for item_id, item in self.fee_items.items():
+            if item["var"].get():
+                paid_items.append(item["data"].get("name", "Unknown"))
+
+        print(f"Paying for: {', '.join(paid_items)}")
 
         # Show success message
         success_dialog = ctk.CTkToplevel(self.parent)
@@ -282,5 +274,6 @@ if __name__ == "__main__":
     container = ctk.CTkFrame(root)
     container.pack(fill="both", expand=True)
 
-    app = PaymentScreen(container, go_back, sample_student, sample_fees)
+    # Use the class name from your provided code
+    app = PaymentApp(container, go_back, sample_student, sample_fees)
     root.mainloop()

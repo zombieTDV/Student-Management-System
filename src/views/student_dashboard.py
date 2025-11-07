@@ -8,6 +8,7 @@ class StudentDashboard:
         student_data=None,
         student_dashboard_view_notifications_callback=None,
         show_financial_summary_callback=None,
+        show_payment_callback=None,
     ):
         self.parent = parent
         self.student_data = student_data or {
@@ -24,6 +25,7 @@ class StudentDashboard:
             student_dashboard_view_notifications_callback
         )
         self.show_financial_summary_callback = show_financial_summary_callback
+        self.show_payment_callback = show_payment_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -189,7 +191,7 @@ class StudentDashboard:
                 "text": "Payment",
                 "icon": "💳",
                 "color": "#4CAF50",
-                "command": self.payment,
+                "command": self.show_payment_callback,
             },
         ]
 

@@ -8,6 +8,7 @@ from views.login import LoginNotificationApp
 from views.student_dashboard import StudentDashboard
 from views.student_dashboard_view_notifications import StudentDashboardViewNotification
 from views.financial_summary import FinancialSummaryApp
+from views.payment import PaymentApp
 
 from views.admin_dashboard import AdminDashboard
 from views.student_management import StudentManagement
@@ -146,6 +147,7 @@ class MainApp:
             None,
             self.show_student_dashboard_view_notifications,
             self.show_financial_summary,
+            self.show_payment,
         )
 
     def show_student_dashboard_view_notifications(self):
@@ -168,6 +170,15 @@ class MainApp:
 
         self.current_frame = FinancialSummaryApp(
             self.container, self.show_student_dashboard
+        )
+
+    def show_payment(self):
+        """Show student payment view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = PaymentApp(
+            self.container, self.show_student_dashboard, None, None
         )
 
     def on_closing(self):
