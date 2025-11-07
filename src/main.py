@@ -4,9 +4,15 @@ from controllers.auth_controller import AuthController
 
 # from controllers.notification_controller import NotificationController
 from views.login import LoginNotificationApp
+
 from views.student_dashboard import StudentDashboard
+from views.student_dashboard_view_notifications import StudentDashboardViewNotification
+from views.financial_summary import FinancialSummaryApp
+from views.payment import PaymentApp
+
 from views.admin_dashboard import AdminDashboard
 from views.student_management import StudentManagement
+
 from views.make_anoucements import MakeAnnouncement
 from views.email_sent import EmailSent
 
@@ -33,7 +39,7 @@ class MainApp:
         self.current_frame = None
 
         # Show login screen
-        self.show_login()
+        self.show_student_dashboard()
 
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -136,7 +142,44 @@ class MainApp:
         for widget in self.container.winfo_children():
             widget.destroy()
 
-        self.current_frame = StudentDashboard(self.container)
+        self.current_frame = StudentDashboard(
+            self.container,
+            None,
+            self.show_student_dashboard_view_notifications,
+            self.show_financial_summary,
+            self.show_payment,
+        )
+
+    def show_student_dashboard_view_notifications(self):
+        """Show the option of view notification for student dashboard"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = StudentDashboardViewNotification(
+            self.container,
+            self.show_student_dashboard,
+            # self.handle_password_recovery
+            None,
+            None,
+        )
+
+    def show_financial_summary(self):
+        """Show student dashboard's financial summary view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = FinancialSummaryApp(
+            self.container, self.show_student_dashboard
+        )
+
+    def show_payment(self):
+        """Show student payment view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = PaymentApp(
+            self.container, self.show_student_dashboard, None, None
+        )
 
     def on_closing(self):
         """Handle application close"""

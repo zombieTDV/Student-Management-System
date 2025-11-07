@@ -1,21 +1,19 @@
-# models/student.py
-from account import Account
-from database import db
-from bson.objectid import ObjectId
-import datetime
+from models.account import Account
+from models.announcement import Announcement
+from models.fee import Fee
+from models.transaction import Transaction
+
 
 class Student(Account):
-    
-    def __init__(self, fullName, dob, gender, address, contact, major, 
-                 imageURL=None, **kwargs):
+    def __init__(
+        self, fullName, dob, gender, address, contact, major, imageURL=None, **kwargs
+    ):
         """
         Khởi tạo Student.
-        **kwargs sẽ chứa các thuộc tính của Account (username, email, v.v.)
         """
-        # Gọi __init__ của lớp cha (Account)
-        super().__init__(role='student', **kwargs)
-        
-        # Các thuộc tính riêng của Student
+        kwargs.pop("role", None)
+        super().__init__(role="student", **kwargs)
+
         self.fullName = fullName
         self.dob = dob
         self.gender = gender
@@ -24,30 +22,29 @@ class Student(Account):
         self.major = major
         self.imageURL = imageURL
 
-    # Ghi đè phương thức save() để đảm bảo tất cả dữ liệu được lưu
-    # (Thực ra lớp cha Account.save() đã xử lý việc này bằng vars(self))
-    # Nhưng nếu bạn muốn logic lưu riêng biệt, hãy định nghĩa nó ở đây.
-    # def save(self):
-    #     # ...
-    #     super().save()
-
-    # --- Các phương thức từ UML (giờ là instance methods) ---
+    # --- Các phương thức từ UML ---
 
     def updateProfile(self, new_data):
         """
         Cập nhật thông tin hồ sơ của sinh viên.
-        new_data là một dict chứa các trường cần cập nhật.
         """
-        allowed_updates = ['fullName', 'dob', 'gender', 'address', 'contact', 'major', 'imageURL']
+        allowed_updates = [
+            "fullName",
+            "dob",
+            "gender",
+            "address",
+            "contact",
+            "major",
+            "imageURL",
+        ]
         update_fields = {}
-        
+
         for key, value in new_data.items():
             if key in allowed_updates:
-                setattr(self, key, value)  # Cập nhật trên đối tượng Python
+                setattr(self, key, value)
                 update_fields[key] = value
-        
+
         if update_fields:
-            # Gọi save() để lưu toàn bộ thay đổi vào DB
             self.save()
             print(f"Profile cho sinh viên {self.username} đã được cập nhật.")
             return True
@@ -55,31 +52,42 @@ class Student(Account):
 
     def viewFinancial(self):
         """
-        Xem thông tin tài chính (Học phí và Giao dịch).
+        NÂNG CẤP: Xem thông tin tài chính (Học phí và Giao dịch).
+        Trả về các đối tượng Model.
         """
-        fees_collection = db.get_db()['fees']
-        transactions_collection = db.get_db()['transactions']
-        
-        # Tìm tất cả học phí và giao dịch liên quan đến _id này
-        fees = list(fees_collection.find({'student_id': self._id}))
-        transactions = list(transactions_collection.find({'student_id': self._id}))
-        
-        return {'fees': fees, 'transactions': transactions}
+        # Sử dụng các phương thức của lớp Fee và Transaction
+        fees = Fee.find_by_student_id(self._id)
+        transactions = Transaction.find_by_student_id(self._id)
+
+        return {"fees": fees, "transactions": transactions}
 
     def changePassword(self, new_password):
         """
         Sinh viên tự đổi mật khẩu của mình.
-        Phương thức này đến từ lớp cha Account.
         """
         print(f"Sinh viên {self.username} đang đổi mật khẩu...")
         return self.update_password(new_password)
 
     def viewNotification(self):
         """
-        Xem thông báo (Announcements).
+        NÂNG CẤP: Xem thông báo (Announcements).
+        Trả về danh sách các đối tượng Announcement.
         """
-        announcements_collection = db.get_db()['announcements']
-        
-        # Tìm tất cả thông báo, sắp xếp theo ngày tạo mới nhất
-        notifications = list(announcements_collection.find().sort('createAt', -1))
+        # Sử dụng phương thức của lớp Announcement
+        notifications = Announcement.find_all(status="published")
         return notifications
+
+
+s = Student(
+    "TDV",
+    "21/01",
+    "male",
+    "HCM",
+    "0101",
+    "CS",
+    None,
+    username="sv",
+    email="SV@",
+    password="sv123",
+)
+s.save()

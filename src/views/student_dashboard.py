@@ -2,7 +2,14 @@ import customtkinter as ctk
 
 
 class StudentDashboard:
-    def __init__(self, parent, student_data=None):
+    def __init__(
+        self,
+        parent,
+        student_data=None,
+        student_dashboard_view_notifications_callback=None,
+        show_financial_summary_callback=None,
+        show_payment_callback=None,
+    ):
         self.parent = parent
         self.student_data = student_data or {
             "student_id": "2021001",
@@ -13,6 +20,12 @@ class StudentDashboard:
             "major": "Computer Science",
             "avatar": None,
         }
+
+        self.student_dashboard_view_notifications_callback = (
+            student_dashboard_view_notifications_callback
+        )
+        self.show_financial_summary_callback = show_financial_summary_callback
+        self.show_payment_callback = show_payment_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -166,19 +179,19 @@ class StudentDashboard:
                 "text": "View Notifications",
                 "icon": "🔔",
                 "color": "#8BC34A",
-                "command": self.view_notifications,
+                "command": self.student_dashboard_view_notifications_callback,
             },
             {
                 "text": "Financial\nSummary",
                 "icon": "📚",
                 "color": "#FF4081",
-                "command": self.financial_summary,
+                "command": self.show_financial_summary_callback,
             },
             {
                 "text": "Payment",
                 "icon": "💳",
                 "color": "#4CAF50",
-                "command": self.payment,
+                "command": self.show_payment_callback,
             },
         ]
 
