@@ -1,6 +1,6 @@
 # models/student.py
-from account import Account
-from database import db
+from models.account import Account
+from models.database import db
 from bson.objectid import ObjectId
 import datetime
 
@@ -12,7 +12,12 @@ class Student(Account):
         Khởi tạo Student.
         **kwargs sẽ chứa các thuộc tính của Account (username, email, v.v.)
         """
-        # Gọi __init__ của lớp cha (Account)
+        
+        # --- SỬA Ở ĐÂY ---
+        # Lấy 'role' ra khỏi kwargs (vì nó đã có từ DB khi tải)
+        kwargs.pop('role', None)
+        
+        # Gọi __init__ của lớp cha (Account) với role='student'
         super().__init__(role='student', **kwargs)
         
         # Các thuộc tính riêng của Student
