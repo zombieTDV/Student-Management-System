@@ -1,5 +1,5 @@
 # models/admin.py
-from models.account import Account
+from models.account import Account,hash_password, ACCOUNTS_COLLECTION
 from models.student import Student
 from models.database import db
 from bson.objectid import ObjectId
@@ -7,47 +7,50 @@ import datetime
 
 
 class Admin(Account):
+    
     def __init__(self, **kwargs):
         """
         Khởi tạo Admin.
-        **kwargs sẽ chứa các thuộc tính của Account (username, email, v.v.)
-        Admin không có thuộc tính nào thêm (theo UML).
         """
-        # Gọi __init__ của lớp cha (Account)
-        super().__init__(role="admin", **kwargs)
+        kwargs.pop('role', None)
+        super().__init__(role='admin', **kwargs)
 
     # --- Các phương thức từ UML (giờ là instance methods) ---
 
     def createStudent(self, student_profile, account_profile):
-        """
-        Tạo một Sinh viên mới.
-        'student_profile': dict (fullName, dob, v.v.)
-        'account_profile': dict (username, password, email)
-        """
+            """
+            Tạo một Sinh viên mới.
+            'student_profile': dict (fullName, dob, v.v.)
+            'account_profile': dict (username, password, email)
+            """
+            
+            # Gộp cả hai dict lại
+            full_profile = {**student_profile, **account_profile}
+            
+            try:
+                # Kiểm tra username/email đã tồn tại chưa
+                if Account.find_by_username(full_profile['username']):
+                    raise ValueError("Username đã tồn tại.")
 
-        # Gộp cả hai dict lại
-        full_profile = {**student_profile, **account_profile}
-
-        try:
-            # Kiểm tra username/email đã tồn tại chưa
-            if Account.find_by_username(full_profile["username"]):
-                raise ValueError("Username đã tồn tại.")
-            if self.get_collection().find_one({"email": full_profile["email"]}):
-                raise ValueError("Email đã tồn tại.")
-
-            # Tạo đối tượng Student
-            # Mật khẩu sẽ được hash tự động bởi Account.__init__
-            new_student = Student(**full_profile)
-
-            # Lưu vào DB
-            new_student.save()
-
-            print(f"Admin {self.username} đã tạo sinh viên {new_student.username}.")
-            return new_student
-
-        except Exception as e:
-            print(f"Lỗi khi tạo sinh viên: {e}")
-            return None
+                # --- SỬA DÒNG NÀY ---
+                # Thay vì self.get_collection(), dùng ACCOUNTS_COLLECTION
+                if ACCOUNTS_COLLECTION.find_one({'email': full_profile['email']}):
+                    raise ValueError("Email đã tồn tại.")
+                # --- KẾT THÚC SỬA ---
+                    
+                # Tạo đối tượng Student
+                # Mật khẩu sẽ được hash tự động bởi Account.__init__
+                new_student = Student(**full_profile)
+                
+                # Lưu vào DB
+                new_student.save()
+                
+                print(f"Admin {self.username} đã tạo sinh viên {new_student.username}.")
+                return new_student
+                
+            except Exception as e:
+                print(f"Lỗi khi tạo sinh viên: {e}")
+                return None
 
     def editStudent(self, student_id, update_data):
         """
