@@ -5,3 +5,4 @@ per-file-ignores =
     src/views/student_dashboard.py: E203
     src/views/financial_summary.py: E231
     src/views/payment.py: E231
+    src/main.py: E501

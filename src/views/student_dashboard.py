@@ -1,24 +1,28 @@
 import customtkinter as ctk
 
+from controllers.auth_controller import AuthController
+
 
 class StudentDashboard:
     def __init__(
         self,
         parent,
-        student_data=None,
+        auth_controller: AuthController,
         student_dashboard_view_notifications_callback=None,
         show_financial_summary_callback=None,
         show_payment_callback=None,
+        show_update_info_callback=None,
+        show_more_info_callback=None,
     ):
         self.parent = parent
-        self.student_data = student_data or {
-            "student_id": "2021001",
-            "full_name": "John Doe",
-            "gender": "Male",
-            "dob": "01/15/2000",
-            "enrollment_year": "2021",
-            "major": "Computer Science",
-            "avatar": None,
+        self.student_data = {
+            "student_id": auth_controller.current_account._id,
+            "full_name": auth_controller.current_account.fullName,
+            "gender": auth_controller.current_account.gender,
+            "dob": auth_controller.current_account.dob,
+            "enrollment_year": auth_controller.current_account.createAt,
+            "major": auth_controller.current_account.major,
+            "avatar": auth_controller.current_account.imageURL,
         }
 
         self.student_dashboard_view_notifications_callback = (
@@ -26,6 +30,9 @@ class StudentDashboard:
         )
         self.show_financial_summary_callback = show_financial_summary_callback
         self.show_payment_callback = show_payment_callback
+
+        self.show_more_info_callback = show_more_info_callback
+        self.show_update_info_callback = show_update_info_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -161,7 +168,7 @@ class StudentDashboard:
             cursor="hand2",
         )
         more_info.pack(anchor="e", padx=40, pady=(0, 20))
-        more_info.bind("<Button-1>", lambda e: self.show_more_info())
+        more_info.bind("<Button-1>", lambda e: self.show_more_info_callback())
 
         # Action buttons section
         buttons_frame = ctk.CTkFrame(main_frame, fg_color="#E8E8E8")
@@ -173,7 +180,7 @@ class StudentDashboard:
                 "text": "Update Info",
                 "icon": "ℹ️",
                 "color": "#2196F3",
-                "command": self.update_info,
+                "command": self.show_update_info_callback,
             },
             {
                 "text": "View Notifications",
@@ -231,21 +238,6 @@ class StudentDashboard:
         rgb = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
         darker = tuple(int(c * 0.8) for c in rgb)
         return "#%02x%02x%02x" % darker
-
-    def update_info(self):
-        print("Update Info clicked")
-
-    def view_notifications(self):
-        print("View Notifications clicked")
-
-    def financial_summary(self):
-        print("Financial Summary clicked")
-
-    def payment(self):
-        print("Payment clicked")
-
-    def show_more_info(self):
-        print("More information clicked")
 
 
 # Example usage

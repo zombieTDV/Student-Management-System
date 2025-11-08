@@ -3,6 +3,8 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 from datetime import datetime
 
+from controllers.auth_controller import AuthController
+
 
 class UpdateStudentProfile:
     """
@@ -16,21 +18,24 @@ class UpdateStudentProfile:
     def __init__(
         self,
         parent,
-        student_data=None,
-        back_callback=None,
+        auth_controller: AuthController,
+        back_callback,
         update_callback=None,  # Callback để gọi controller
     ):
         self.parent = parent
-        self.student_data = student_data or {
-            "student_id": "2021001",
-            "full_name": "John Doe",
-            "avatar": None,
-            "dob": "01/15/2000",
-            "gender": "Male",
-            "address": "123 Main Street, District 1",
-            "contact": "0901234567",
-            "email": "john.doe@student.edu.vn",
-            "major": "Computer Science",
+        self.auth_controller = auth_controller
+
+        self.student_data = {
+            "student_id": auth_controller.current_account._id,
+            "full_name": auth_controller.current_account.fullName,
+            "gender": auth_controller.current_account.gender,
+            "dob": auth_controller.current_account.dob,
+            "enrollment_year": auth_controller.current_account.createAt,
+            "major": auth_controller.current_account.major,
+            "avatar": auth_controller.current_account.imageURL,
+            "address": auth_controller.current_account.address,
+            "email": auth_controller.current_account.email,
+            "contact": auth_controller.current_account.contact,
         }
 
         self.back_callback = back_callback
@@ -60,7 +65,7 @@ class UpdateStudentProfile:
             header_frame,
             text="🔙",
             font=ctk.CTkFont(size=70, weight="bold"),
-            text_color="#2196F3",
+            text_color="#FF7B7B",
             cursor="hand2",
         )
         back_arrow.pack(side="left", padx=(0, 30))
@@ -151,12 +156,20 @@ class UpdateStudentProfile:
         self.create_readonly_field(
             fields_section, "Student ID", self.student_data.get("student_id", "")
         )
-        self.create_readonly_field(
-            fields_section, "Full Name", self.student_data.get("full_name", "")
-        )
+        # self.create_readonly_field(
+        #     fields_section, "Full Name", self.student_data.get("full_name", "")
+        # )
 
         # Editable fields
         self.entries = {}
+
+        # Date of Birth
+        self.entries["full_name"] = self.create_editable_field(
+            fields_section,
+            "full_name*",
+            self.student_data.get("full_name", ""),
+            placeholder="Nguyen Van A",
+        )
 
         # Date of Birth
         self.entries["dob"] = self.create_editable_field(
@@ -254,7 +267,7 @@ class UpdateStudentProfile:
         cancel_btn.pack(side="right")
 
     def create_readonly_field(self, parent, label_text, value_text):
-        """Create a read-only field (for StudentID, FullName)"""
+        """Create a read-only field (for StudentID)"""
         field_container = ctk.CTkFrame(parent, fg_color="white")
         field_container.pack(fill="x", pady=12, padx=20)
 
@@ -445,6 +458,7 @@ class UpdateStudentProfile:
 
         # Collect updated data
         updated_data = {
+            "full_name": self.entries["full_name"].get().strip(),
             "dob": self.entries["dob"].get().strip(),
             "gender": self.entries["gender"].get(),
             "address": self.entries["address"].get().strip(),

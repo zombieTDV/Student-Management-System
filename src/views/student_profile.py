@@ -1,5 +1,7 @@
 import customtkinter as ctk
 
+from controllers.auth_controller import AuthController
+
 
 class StudentProfile:
     """
@@ -12,22 +14,24 @@ class StudentProfile:
     def __init__(
         self,
         parent,
-        student_data=None,
-        back_callback=None,
-        edit_callback=None,
+        auth_controller: AuthController,
+        back_callback,
+        edit_callback,
     ):
         self.parent = parent
-        self.student_data = student_data or {
-            "student_id": "2021001",
-            "full_name": "John Doe",
-            "avatar": None,
-            "dob": "01/15/2000",
-            "gender": "Male",
-            "address": "123 Main Street, District 1",
-            "contact": "0901234567",
-            "email": "john.doe@student.edu.vn",
-            "major": "Computer Science",
-            "enrollment_year": "2021",
+        self.auth_controller = auth_controller
+
+        self.student_data = {
+            "student_id": auth_controller.current_account._id,
+            "full_name": auth_controller.current_account.fullName,
+            "gender": auth_controller.current_account.gender,
+            "dob": auth_controller.current_account.dob,
+            "enrollment_year": auth_controller.current_account.createAt,
+            "major": auth_controller.current_account.major,
+            "avatar": auth_controller.current_account.imageURL,
+            "address": auth_controller.current_account.address,
+            "email": auth_controller.current_account.email,
+            "contact": auth_controller.current_account.contact,
         }
 
         self.back_callback = back_callback

@@ -6,6 +6,9 @@ from controllers.notifications_controller import NotificationsController
 from views.login import LoginNotificationApp
 
 from views.student_dashboard import StudentDashboard
+from views.student_profile import StudentProfile
+from views.update_student_profile import UpdateStudentProfile
+
 from views.student_dashboard_view_notifications import StudentDashboardViewNotification
 from views.financial_summary import FinancialSummaryApp
 from views.payment import PaymentApp
@@ -156,10 +159,46 @@ class MainApp:
 
         self.current_frame = StudentDashboard(
             self.container,
-            None,
-            self.show_student_dashboard_view_notifications,
-            self.show_financial_summary,
-            self.show_payment,
+            auth_controller=self.auth_controller,
+            student_dashboard_view_notifications_callback=self.show_student_dashboard_view_notifications,
+            show_financial_summary_callback=self.show_financial_summary,
+            show_payment_callback=self.show_payment,
+            show_more_info_callback=self.show_student_profile,
+            show_update_info_callback=self.show_update_student_profile_on_studentDashboard,
+        )
+
+    def show_student_profile(self):
+        """Show student profile via more-information"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = StudentProfile(
+            self.container,
+            auth_controller=self.auth_controller,
+            back_callback=self.show_student_dashboard,
+            edit_callback=self.show_update_student_profile_on_moreInfo,
+        )
+
+    def show_update_student_profile_on_moreInfo(self):
+        """Show update student profile via more-information"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = UpdateStudentProfile(
+            self.container,
+            auth_controller=self.auth_controller,
+            back_callback=self.show_student_profile,
+        )
+
+    def show_update_student_profile_on_studentDashboard(self):
+        """Show update student profile via student dashboard"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = UpdateStudentProfile(
+            self.container,
+            auth_controller=self.auth_controller,
+            back_callback=self.show_student_dashboard,
         )
 
     def show_student_dashboard_view_notifications(self):
