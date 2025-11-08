@@ -6,3 +6,4 @@ per-file-ignores =
     src/views/financial_summary.py: E231
     src/views/payment.py: E231
     src/main.py: E501
+    src/models/test.py: E501
