@@ -3,7 +3,6 @@ import customtkinter as ctk
 from controllers.auth_controller import AuthController
 from controllers.notifications_controller import NotificationsController
 
-# from controllers.notification_controller import NotificationController
 from views.login import LoginNotificationApp
 
 from views.student_dashboard import StudentDashboard

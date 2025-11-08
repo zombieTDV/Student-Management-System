@@ -5,9 +5,9 @@ class AdminDashboard:
     def __init__(
         self,
         parent,
-        back_callback=None,
-        student_management_callback=None,
-        make_announcement_callback=None,
+        back_callback,
+        student_management_callback,
+        make_announcement_callback,
     ):
         self.parent = parent
         self.back_callback = back_callback
