@@ -1,140 +1,246 @@
-from models.account import Account, ACCOUNTS_COLLECTION
-from models.student import Student
-
+from datetime import datetime
+from typing import Optional, Dict
 from bson.objectid import ObjectId
-from models.announcement import Announcement
-from models.fee import Fee
-from models.transaction import Transaction
 
 
-class Admin(Account):
-    def __init__(self, **kwargs):
-        """
-        Khởi tạo Admin.
-        """
-        kwargs.pop("role", None)
-        super().__init__(role="admin", **kwargs)
+class Admin:
+    """
+    Model class đại diện cho Admin trong hệ thống
+    Chứa các thuộc tính và phương thức xử lý nghiệp vụ liên quan đến Admin
+    """
 
-    def createStudent(self, student_profile, account_profile):
+    def __init__(self, db_connection):
         """
-        Tạo một Sinh viên mới.
-        """
-        full_profile = {**student_profile, **account_profile}
+        Khởi tạo Admin model với kết nối database
 
+        Args:
+            db_connection: MongoDB database connection
+        """
+        self.db = db_connection
+        self.collection = self.db["admins"]
+
+    def create_admin(self, username: str, password: str, email: str) -> Dict:
+        """
+        Tạo mới một admin account
+
+        Args:
+            username: Tên đăng nhập
+            password: Mật khẩu (đã được hash)
+            email: Email admin
+
+        Returns:
+            Dict chứa thông tin admin vừa tạo
+        """
+        admin_data = {
+            "username": username,
+            "password": password,
+            "email": email,
+            "role": "admin",
+            "createAt": datetime.now(),
+        }
+
+        result = self.collection.insert_one(admin_data)
+        admin_data["_id"] = result.inserted_id
+
+        return admin_data
+
+    def createStudent(self, student_data: Dict) -> bool:
+        """
+        Tạo mới sinh viên (Theo Class Diagram)
+
+        Args:
+            student_data: Dictionary chứa thông tin sinh viên
+                - username: string
+                - password: string (đã hash)
+                - email: string
+                - fullName: string
+                - dob: Date
+                - gender: string
+                - address: string
+                - contact: string (phone)
+                - major: string
+                - imageURL: string (optional)
+
+        Returns:
+            True nếu tạo thành công, False nếu thất bại
+        """
         try:
-            if Account.find_by_username(full_profile["username"]):
-                raise ValueError("Username đã tồn tại.")
-            if ACCOUNTS_COLLECTION.find_one({"email": full_profile["email"]}):
-                raise ValueError("Email đã tồn tại.")
+            students_collection = self.db["students"]
 
-            new_student = Student(**full_profile)
-            new_student.save()
+            # Thêm thông tin mặc định
+            student_data["createAt"] = datetime.now()
+            student_data["role"] = "student"
 
-            print(f"Admin {self.username} đã tạo sinh viên {new_student.username}.")
-            return new_student
-
+            result = students_collection.insert_one(student_data)
+            return result.inserted_id is not None
         except Exception as e:
-            print(f"Lỗi khi tạo sinh viên: {e}")
+            print(f"Error creating student: {e}")
+            return False
+
+    def editStudent(self, student_id: str, updated_data: Dict) -> bool:
+        """
+        Chỉnh sửa thông tin sinh viên (Theo Class Diagram)
+
+        Args:
+            student_id: ID của sinh viên cần sửa (ObjectId hoặc accountID)
+            updated_data: Dictionary chứa dữ liệu cập nhật
+                - Có thể cập nhật: fullName, dob, gender, address,
+                  contact, major, imageURL, email
+
+        Returns:
+            True nếu cập nhật thành công, False nếu thất bại
+        """
+        try:
+            students_collection = self.db["students"]
+
+            # Thử tìm theo ObjectId trước
+            try:
+                query = {"_id": ObjectId(student_id)}
+            except Exception:
+                # Nếu không phải ObjectId, tìm theo accountID
+                query = {"accountID": student_id}
+
+            result = students_collection.update_one(query, {"$set": updated_data})
+
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error editing student: {e}")
+            return False
+
+    def softDeleteStudent(self, student_id: str) -> bool:
+        """
+        Xóa mềm sinh viên (Theo Class Diagram)
+        Đánh dấu sinh viên là đã xóa, không xóa khỏi database
+
+        Args:
+            student_id: ID của sinh viên cần xóa
+
+        Returns:
+            True nếu xóa thành công, False nếu thất bại
+        """
+        try:
+            students_collection = self.db["students"]
+
+            # Thử tìm theo ObjectId trước
+            try:
+                query = {"_id": ObjectId(student_id)}
+            except Exception:
+                # Nếu không phải ObjectId, tìm theo accountID
+                query = {"accountID": student_id}
+
+            result = students_collection.update_one(
+                query, {"$set": {"isDeleted": True, "deletedAt": datetime.now()}}
+            )
+
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error deleting student: {e}")
+            return False
+
+    def postAnnouncement(self, announcement_data: Dict) -> bool:
+        """
+        Đăng thông báo mới (Theo Class Diagram)
+
+        Args:
+            announcement_data: Dictionary chứa thông tin thông báo
+                - title: string (tiêu đề)
+                - content: string (nội dung)
+                - accountID: string (ID của admin tạo, optional)
+
+        Returns:
+            True nếu đăng thành công, False nếu thất bại
+        """
+        try:
+            announcements_collection = self.db["announcements"]
+
+            # Thêm thông tin người tạo và thời gian
+            announcement_data["createBy"] = self.username or "admin"
+            announcement_data["createAt"] = datetime.now()
+
+            # Nếu có accountID của admin hiện tại, thêm vào
+            if self.accountID:
+                announcement_data["accountID"] = self.accountID
+
+            result = announcements_collection.insert_one(announcement_data)
+            return result.inserted_id is not None
+        except Exception as e:
+            print(f"Error posting announcement: {e}")
+            return False
+
+    def editPayment(self, payment_id: str, updated_data: Dict) -> bool:
+        """
+        Chỉnh sửa thông tin thanh toán (Theo Class Diagram)
+
+        Args:
+            payment_id: ID của giao dịch thanh toán (Transaction)
+            updated_data: Dictionary chứa dữ liệu cập nhật
+                - Có thể cập nhật: amount, status, method, date
+
+        Returns:
+            True nếu cập nhật thành công, False nếu thất bại
+        """
+        try:
+            transactions_collection = self.db["transactions"]
+
+            # Thử tìm theo ObjectId
+            try:
+                query = {"_id": ObjectId(payment_id)}
+            except Exception:
+                # Nếu không phải ObjectId, tìm theo transactionID
+                query = {"transactionID": payment_id}
+
+            result = transactions_collection.update_one(query, {"$set": updated_data})
+
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error editing payment: {e}")
+            return False
+
+    @staticmethod
+    def authenticate(db_connection, username: str, password: str) -> Optional["Admin"]:
+        """
+        Xác thực đăng nhập admin
+        (Không có trong Class Diagram nhưng cần thiết cho chức năng đăng nhập)
+
+        Args:
+            db_connection: MongoDB database connection
+            username: Tên đăng nhập
+            password: Mật khẩu (đã hash)
+
+        Returns:
+            Admin object nếu xác thực thành công, None nếu thất bại
+        """
+        try:
+            admins_collection = db_connection["admins"]
+            admin_data = admins_collection.find_one(
+                {"username": username, "password": password}
+            )
+
+            if admin_data:
+                admin = Admin(db_connection)
+                admin.accountID = str(admin_data["_id"])
+                admin.username = admin_data["username"]
+                admin.email = admin_data.get("email")
+                admin.role = admin_data.get("role", "admin")
+                admin.createAt = admin_data.get("createAt")
+                return admin
+
+            return None
+        except Exception as e:
+            print(f"Error authenticating admin: {e}")
             return None
 
-    def editStudent(self, student_id, update_data):
+    def to_dict(self) -> Dict:
         """
-        Chỉnh sửa thông tin của một sinh viên.
+        Chuyển đối tượng Admin thành dictionary
+
+        Returns:
+            Dictionary chứa thông tin admin
         """
-        student = Account.find_by_id(student_id)
-        if not student or student.role != "student":
-            print(f"Không tìm thấy sinh viên với ID: {student_id}")
-            return False
-        return student.updateProfile(update_data)
-
-    def softDeleteStudent(self, student_id):
-        """
-        "Xóa mềm" một sinh viên (đánh dấu tài khoản là không hoạt động).
-        """
-        student = Account.find_by_id(student_id)
-        if not student or student.role != "student":
-            print(f"Không tìm thấy sinh viên với ID: {student_id}")
-            return False
-
-        setattr(student, "is_active", False)
-        student.save()
-
-        print(f"Đã vô hiệu hóa tài khoản cho sinh viên: {student.username}")
-        return True
-
-    def postAnnouncement(self, title, content):
-        """
-        NÂNG CẤP: Đăng một thông báo mới.
-        """
-        # Sử dụng lớp Announcement
-        announcement = Announcement(
-            title=title, content=content, createBy=self._id  # ID của admin này
-        )
-        announcement.save()
-        print(f"Admin {self.username} đã đăng thông báo '{title}'")
-        return announcement  # Trả về đối tượng vừa tạo
-
-    def createFee(self, student_id, description, amount, dueDate, period):
-        """
-        THÊM MỚI: Tạo một khoản phí mới cho sinh viên.
-        """
-        # Đảm bảo student_id là ObjectId
-        if not isinstance(student_id, ObjectId):
-            student_id = ObjectId(student_id)
-
-        fee = Fee(
-            description=description,
-            amount=amount,
-            student_id=student_id,
-            dueDate=dueDate,
-            period=period,
-        )
-        fee.save()
-        print(
-            f"Admin {self.username} đã tạo học phí '{description}' cho SV {student_id}"
-        )
-        return fee
-
-    def editPayment(self, fee_id, new_status, amount_paid=None):
-        """
-        NÂNG CẤP: Chỉnh sửa một khoản thanh toán (Fee).
-        Sử dụng các lớp Fee và Transaction.
-        """
-        fee = Fee.find_by_id(fee_id)
-        if not fee:
-            print(f"Không tìm thấy bản ghi học phí: {fee_id}")
-            return False
-
-        try:
-            if new_status == "paid":
-                if amount_paid is None:
-                    amount_paid = fee.amount  # Mặc định trả đủ
-
-                # 1. Đánh dấu học phí đã trả
-                fee.markPaid()  # Hàm này tự .save()
-
-                # 2. Tạo giao dịch tương ứng
-                transaction = Transaction(
-                    amount=amount_paid,
-                    method="admin_entry",
-                    student_id=fee.student_id,
-                    fee_id=fee._id,
-                    status="completed",
-                )
-                transaction.save()
-                print(f"Đã tạo giao dịch cho học phí {fee_id}")
-            else:
-                # Chỉ cập nhật trạng thái (ví dụ: 'overdue')
-                fee.status = new_status
-                fee.save()
-
-            print(f"Admin {self.username} đã cập nhật học phí {fee_id}")
-            return True
-
-        except Exception as e:
-            print(f"Lỗi khi chỉnh sửa thanh toán: {e}")
-            return False
-
-
-# a = Admin(username = "admin", email = "admin@", password = "admin123")
-# a.save()
+        return {
+            "accountID": self.accountID,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role,
+            "createAt": self.createAt,
+        }
