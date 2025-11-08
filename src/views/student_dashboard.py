@@ -141,6 +141,7 @@ class StudentDashboard:
             )
             field1.pack(fill="x")
             field1.insert(0, value1)
+            field1.configure(state="readonly")
 
             # Right column
             right_col = ctk.CTkFrame(row_frame, fg_color="white")
@@ -158,6 +159,7 @@ class StudentDashboard:
             )
             field2.pack(fill="x")
             field2.insert(0, value2)
+            field2.configure(state="readonly")
 
         # More information link
         more_info = ctk.CTkLabel(
