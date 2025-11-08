@@ -137,20 +137,20 @@ class StudentDashboardViewNotification:
         self.detail_callback(notification_data)
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1200x800")
-    root.title("Notifications")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1200x800")
+#     root.title("Notifications")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    def go_back():
-        print("Going back...")
+#     def go_back():
+#         print("Going back...")
 
-    def show_detail(notification_id):
-        print(f"Show detail for notification: {notification_id}")
+#     def show_detail(notification_id):
+#         print(f"Show detail for notification: {notification_id}")
 
-    app = StudentDashboardViewNotification(container, go_back, show_detail)
-    root.mainloop()
+#     app = StudentDashboardViewNotification(container, go_back, show_detail)
+#     root.mainloop()

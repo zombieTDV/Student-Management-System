@@ -242,23 +242,23 @@ class StudentDashboard:
         return "#%02x%02x%02x" % darker
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Student Dashboard")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x800")
+#     root.title("Student Dashboard")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    sample_student = {
-        "student_id": "2021001",
-        "full_name": "John Doe",
-        "gender": "Male",
-        "dob": "01/15/2000",
-        "enrollment_year": "2021",
-        "major": "Computer Science",
-    }
+#     sample_student = {
+#         "student_id": "2021001",
+#         "full_name": "John Doe",
+#         "gender": "Male",
+#         "dob": "01/15/2000",
+#         "enrollment_year": "2021",
+#         "major": "Computer Science",
+#     }
 
-    app = StudentDashboard(container, sample_student)
-    root.mainloop()
+#     app = StudentDashboard(container, sample_student)
+#     root.mainloop()

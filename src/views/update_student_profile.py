@@ -535,33 +535,33 @@ class UpdateStudentProfile:
         ).pack(pady=20)
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x900")
-    root.title("Update Student Profile")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x900")
+#     root.title("Update Student Profile")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    sample_student = {
-        "student_id": "2021001",
-        "full_name": "Nguyễn Văn An",
-        "avatar": None,
-        "dob": "15/01/2000",
-        "gender": "Male",
-        "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
-        "contact": "0901234567",
-        "email": "nguyen.van.an@student.edu.vn",
-        "major": "Computer Science",
-    }
+#     sample_student = {
+#         "student_id": "2021001",
+#         "full_name": "Nguyễn Văn An",
+#         "avatar": None,
+#         "dob": "15/01/2000",
+#         "gender": "Male",
+#         "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
+#         "contact": "0901234567",
+#         "email": "nguyen.van.an@student.edu.vn",
+#         "major": "Computer Science",
+#     }
 
-    def go_back():
-        print("Going back...")
+#     def go_back():
+#         print("Going back...")
 
-    def handle_update(data):
-        print("Update data:", data)
-        return {"success": True, "message": "Profile updated"}
+#     def handle_update(data):
+#         print("Update data:", data)
+#         return {"success": True, "message": "Profile updated"}
 
-    app = UpdateStudentProfile(container, sample_student, go_back, handle_update)
-    root.mainloop()
+#     app = UpdateStudentProfile(container, sample_student, go_back, handle_update)
+#     root.mainloop()

@@ -222,33 +222,33 @@ class StudentProfile:
             print("Edit profile clicked - callback not set")
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x900")
-    root.title("Student Profile")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x900")
+#     root.title("Student Profile")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    sample_student = {
-        "student_id": "2021001",
-        "full_name": "Nguyễn Văn An",
-        "avatar": None,
-        "dob": "15/01/2000",
-        "gender": "Male",
-        "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
-        "contact": "0901234567",
-        "email": "nguyen.van.an@student.edu.vn",
-        "major": "Computer Science",
-        "enrollment_year": "2021",
-    }
+#     sample_student = {
+#         "student_id": "2021001",
+#         "full_name": "Nguyễn Văn An",
+#         "avatar": None,
+#         "dob": "15/01/2000",
+#         "gender": "Male",
+#         "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
+#         "contact": "0901234567",
+#         "email": "nguyen.van.an@student.edu.vn",
+#         "major": "Computer Science",
+#         "enrollment_year": "2021",
+#     }
 
-    def go_back():
-        print("Going back to dashboard...")
+#     def go_back():
+#         print("Going back to dashboard...")
 
-    def edit_profile():
-        print("Opening edit profile page...")
+#     def edit_profile():
+#         print("Opening edit profile page...")
 
-    app = StudentProfile(container, sample_student, go_back, edit_profile)
-    root.mainloop()
+#     app = StudentProfile(container, sample_student, go_back, edit_profile)
+#     root.mainloop()
