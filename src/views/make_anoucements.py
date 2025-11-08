@@ -10,18 +10,16 @@ class MakeAnnouncement:
         self,
         parent,
         back_callback,
-        notifications_controller: NotificationsController,
-        auth_controller: AuthController,
+        notifications_controller: "NotificationsController",
+        auth_controller: "AuthController",
     ):
         self.parent = parent
         self.back_callback = back_callback
-
         self.notifications_controller = notifications_controller
         self.auth_controller = auth_controller
 
-        # Set theme
+        # Set theme (consistent with other views)
         ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("green")
 
         # Main container with rounded border
         main_frame = ctk.CTkFrame(
@@ -33,32 +31,33 @@ class MakeAnnouncement:
         )
         main_frame.pack(expand=True, fill="both", padx=30, pady=30)
 
-        # Header with back arrow
-        header_frame = ctk.CTkFrame(main_frame, fg_color="white")
-        header_frame.pack(anchor="w", padx=60, pady=(40, 30))
+        # Header
+        header_frame = ctk.CTkFrame(main_frame, fg_color="white", corner_radius=0)
+        header_frame.pack(fill="x", padx=40, pady=(40, 20))
 
-        # Back arrow button
+        # Back arrow button (style from financial_summary_treeview.py)
         back_arrow = ctk.CTkLabel(
             header_frame,
             text="🔙",
             font=ctk.CTkFont(size=70, weight="bold"),
-            text_color="#FF7B7B",
+            text_color="#AA00FF",  # Purple from mockup
             cursor="hand2",
         )
-        back_arrow.pack(side="left", padx=(0, 20))
+        back_arrow.pack(side="left", padx=(0, 30))
         if back_callback:
             back_arrow.bind("<Button-1>", lambda e: back_callback())
 
-        # Header title
-        header_label = ctk.CTkLabel(
+        # Title (with line break as in mockup)
+        title_label = ctk.CTkLabel(
             header_frame,
             text="Make\nAnnoucement",
-            font=ctk.CTkFont(family="Arial", size=42, weight="bold"),
+            font=ctk.CTkFont(family="Arial", size=48, weight="bold"),
             text_color="#22C55E",
+            justify="left",
         )
-        header_label.pack(side="left")
+        title_label.pack(side="left")
 
-        # Content container with border
+        # --- Content Container ---
         content_container = ctk.CTkFrame(
             main_frame,
             fg_color="white",
@@ -66,167 +65,197 @@ class MakeAnnouncement:
             border_width=2,
             border_color="black",
         )
-        content_container.pack(fill="both", expand=True, padx=60, pady=(0, 30))
+        content_container.pack(fill="both", expand=True, padx=40, pady=10)
 
-        # Title section
-        title_section = ctk.CTkFrame(
-            content_container, fg_color="#F5F5F5", corner_radius=0, height=80
-        )
-        title_section.pack(fill="x", padx=0, pady=0)
-        title_section.pack_propagate(False)
-
-        title_label = ctk.CTkLabel(
-            title_section,
-            text="TITLE",
-            font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
-            text_color="black",
-        )
-        title_label.pack(expand=True)
-
-        # Title border
-        title_border = ctk.CTkFrame(content_container, fg_color="black", height=2)
-        title_border.pack(fill="x", padx=0, pady=0)
-
-        # Title input
-        title_input_frame = ctk.CTkFrame(content_container, fg_color="white")
-        title_input_frame.pack(fill="x", padx=20, pady=(15, 0))
-
+        # 1. Title Entry
         self.title_entry = ctk.CTkEntry(
-            title_input_frame,
-            font=ctk.CTkFont(family="Arial", size=16),
-            placeholder_text="Enter announcement title...",
-            height=40,
-            border_width=0,
-            fg_color="white",
-        )
-        self.title_entry.pack(fill="x", padx=10, pady=5)
-
-        # Contents section label
-        contents_label = ctk.CTkLabel(
             content_container,
-            text="CONTENTS",
-            font=ctk.CTkFont(family="Arial", size=18, slant="italic"),
+            placeholder_text="TITLE",
+            font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+            border_width=0,
+            fg_color="transparent",
+            justify="center",  # <-- Add this to center the text
+        )
+        self.title_entry.pack(fill="x", padx=20, pady=(20, 10), ipady=10)
+
+        # Separator line
+        separator = ctk.CTkFrame(content_container, fg_color="#B0B0B0", height=2)
+        separator.pack(fill="x", padx=20)
+
+        # 2. Date Label (at the bottom)
+        bottom_frame = ctk.CTkFrame(content_container, fg_color="transparent")
+        bottom_frame.pack(fill="x", side="bottom", padx=20, pady=10)
+
+        today_str = datetime.now().strftime("date: %d/%m/%Y")
+        date_label = ctk.CTkLabel(
+            bottom_frame,
+            text=today_str,
+            font=ctk.CTkFont(family="Arial", size=14),
             text_color="gray",
         )
-        contents_label.pack(pady=(20, 10))
+        date_label.pack(side="right")
 
-        # Contents input (multiline textbox)
-        self.contents_text = ctk.CTkTextbox(
+        # 3. Contents Textbox (fills remaining space)
+        self.contents_textbox = ctk.CTkTextbox(
             content_container,
-            font=ctk.CTkFont(family="Arial", size=14),
-            fg_color="white",
+            font=ctk.CTkFont(family="Arial", size=16),
             border_width=0,
-            wrap="word",
+            fg_color="transparent",
+            wrap="word",  # Wrap text
         )
-        self.contents_text.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        self.contents_textbox.pack(fill="both", expand=True, padx=20, pady=(10, 0))
+        # Add "CONTENTS" placeholder
+        self.contents_textbox.insert("1.0", "CONTENTS")
+        self.contents_textbox.configure(text_color="gray")
+        # Bind focus events to manage placeholder
+        self.contents_textbox.bind("<FocusIn>", self._clear_placeholder)
+        self.contents_textbox.bind("<FocusOut>", self._add_placeholder)
 
-        # Date label (bottom right)
-        self.date_label = ctk.CTkLabel(
-            content_container,
-            text=f"date: {datetime.now().strftime('%m/%d/%Y')}",
-            font=ctk.CTkFont(family="Arial", size=12),
-            text_color="black",
-        )
-        self.date_label.pack(side="bottom", anchor="e", padx=30, pady=(0, 20))
+        # --- Footer (Post Button) ---
+        footer_frame = ctk.CTkFrame(main_frame, fg_color="white")
+        footer_frame.pack(fill="x", padx=40, pady=(20, 40))
 
-        # Post button
-        post_btn = ctk.CTkButton(
-            main_frame,
+        post_button = ctk.CTkButton(
+            footer_frame,
             text="Post",
-            font=ctk.CTkFont(family="Arial", size=22, weight="bold"),
-            fg_color="#4CAF50",
-            hover_color="#45A049",
+            font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
+            fg_color="#22C55E",
+            hover_color="#16A34A",
             text_color="white",
-            width=220,
-            height=70,
-            corner_radius=20,
+            width=180,  # Wider button
+            height=60,  # Taller button
+            corner_radius=15,
             command=self.post_announcement,
         )
-        post_btn.pack(side="left", padx=(50, 150))
+        post_button.pack(side="left")  # Aligned left as in mockup
+
+    def _clear_placeholder(self, event):
+        """Remove placeholder text on focus"""
+        if self.contents_textbox.get("1.0", "end-1c") == "CONTENTS":
+            self.contents_textbox.delete("1.0", "end")
+            self.contents_textbox.configure(text_color="black")
+
+    def _add_placeholder(self, event):
+        """Add placeholder text if empty"""
+        if not self.contents_textbox.get("1.0", "end-1c"):
+            self.contents_textbox.insert("1.0", "CONTENTS")
+            self.contents_textbox.configure(text_color="gray")
 
     def post_announcement(self):
-        """Handle post announcement"""
-        title = self.title_entry.get().strip()
-        contents = self.contents_text.get("1.0", "end-1c").strip()
-        date = datetime.now().strftime("%m/%d/%Y")
+        """Core mechanism: Get data and call controller"""
+        title = self.title_entry.get()
+        content = self.contents_textbox.get("1.0", "end-1c")
 
-        # Validate
-        if not title:
-            self.show_error("Title is required!")
+        # Validation
+        if not title or not content or content == "CONTENTS":
+            self.show_error_popup("Title and Content are required.")
             return
 
-        if not contents:
-            self.show_error("Contents is required!")
-            return
+        try:
+            # Get author info from auth_controller
+            # This is an assumption; change as needed
+            author = self.auth_controller.current_account
+            author_id = author._id
+            # author_name = author.username
 
-        # Create announcement data
-        announcement = {"title": title, "content": contents, "date": f"date: {date}"}
+            # Call the notifications_controller
+            # This is an assumption; change as needed
+            success = self.notifications_controller.admin_post_announcement(
+                title, content, author_id
+            )
 
-        self.notifications_controller.admin_post_announcement(
-            announcement["title"],
-            announcement["content"],
-            self.auth_controller.current_account._id,
-        )
+            if success:
+                self.show_success_popup("Announcement posted successfully!")
+                # Optionally clear the fields
+                self.title_entry.delete(0, "end")
+                self.contents_textbox.delete("1.0", "end")
+                self._add_placeholder(None)
+            else:
+                self.show_error_popup("Failed to post announcement.")
 
-        print(f"Posting announcement: {announcement}")
-        # TODO: Save to MongoDB via NotificationController
+        except Exception as e:
+            self.show_error_popup(f"An error occurred: {e}")
 
-        # Show success and clear form
-        self.show_success()
-        self.clear_form()
-
-    def show_error(self, message):
-        """Show error dialog"""
-        error_dialog = ctk.CTkToplevel(self.parent)
-        error_dialog.title("Error")
-        error_dialog.geometry("350x150")
-        error_dialog.grab_set()
-
-        ctk.CTkLabel(
-            error_dialog,
-            text=f"⚠️ {message}",
-            font=ctk.CTkFont(size=16),
-            text_color="#FF0000",
-        ).pack(pady=30)
-        ctk.CTkButton(
-            error_dialog, text="OK", width=100, command=error_dialog.destroy
-        ).pack(pady=10)
-
-    def show_success(self):
-        """Show success dialog"""
+    def show_success_popup(self, message):
+        """Shows a success message popup (modal)"""
         success_dialog = ctk.CTkToplevel(self.parent)
         success_dialog.title("Success")
-        success_dialog.geometry("350x150")
-        success_dialog.grab_set()
+        success_dialog.geometry("400x200")
+        success_dialog.grab_set()  # Make modal
+        success_dialog.attributes("-topmost", True)
 
         ctk.CTkLabel(
             success_dialog,
-            text="✓ Announcement Posted!",
-            font=ctk.CTkFont(size=18, weight="bold"),
+            text="✓ " + message,
+            font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#22C55E",
-        ).pack(pady=30)
+            wraplength=360,
+        ).pack(pady=40, padx=20)
+
         ctk.CTkButton(
-            success_dialog, text="OK", width=100, command=success_dialog.destroy
-        ).pack(pady=10)
+            success_dialog,
+            text="OK",
+            width=120,
+            height=40,
+            command=success_dialog.destroy,
+        ).pack(pady=(0, 20))
 
-    def clear_form(self):
-        """Clear the form"""
-        self.title_entry.delete(0, "end")
-        self.contents_text.delete("1.0", "end")
-        self.date_label.configure(text=f"date: {datetime.now().strftime('%m/%d/%Y')}")
+    def show_error_popup(self, message):
+        """Shows an error message popup (modal)"""
+        error_dialog = ctk.CTkToplevel(self.parent)
+        error_dialog.title("Error")
+        error_dialog.geometry("400x200")
+        error_dialog.grab_set()
+        error_dialog.attributes("-topmost", True)
+
+        ctk.CTkLabel(
+            error_dialog,
+            text="⚠️ " + message,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="#EF4444",  # Red
+            wraplength=360,
+        ).pack(pady=40, padx=20)
+
+        ctk.CTkButton(
+            error_dialog,
+            text="OK",
+            width=120,
+            height=40,
+            command=error_dialog.destroy,
+        ).pack(pady=(0, 20))
 
 
-# Example usage
+# Example usage (if you want to run this file directly)
 if __name__ == "__main__":
+    # --- Dummy Controller Classes for Testing ---
+    class DummyNotificationsController:
+        def create_announcement(self, author_id, author_name, title, content):
+            print("--- New Announcement ---")
+            print(f"From: {author_name} ({author_id})")
+            print(f"Title: {title}")
+            print(f"Content: {content}")
+            print("-------------------------")
+            # _return False # Use this to test the error case
+            return True
+
+    class DummyAuthController:
+        def get_current_user(self):
+            return {"id": "admin123", "name": "Dr. Admin"}
+
+    # --- Main App Setup ---
+
     root = ctk.CTk()
     root.geometry("1400x800")
-    root.title("Make Announcement")
+    root.title("Make Announcement Test")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+    def go_back_test():
+        print("Back button clicked!")
 
-    def go_back():
-        print("Going back...")
+    # Create dummy controllers
+    notif_controller = DummyNotificationsController()
+    auth_controller = DummyAuthController()
 
-    app = MakeAnnouncement(container, go_back)
+    # Create the app
+    app = MakeAnnouncement(root, go_back_test, notif_controller, auth_controller)
+
     root.mainloop()

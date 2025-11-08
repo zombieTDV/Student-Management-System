@@ -1,13 +1,15 @@
 import customtkinter as ctk
 
+from controllers.notifications_controller import NotificationsController
+
 
 class StudentDashboardViewNotification:
     def __init__(
         self,
         parent,
-        back_callback=None,
-        detail_callback=None,
-        notification_controller=None,
+        back_callback,
+        detail_callback,
+        notification_controller: NotificationsController,
     ):
         self.parent = parent
         self.back_callback = back_callback
@@ -69,53 +71,12 @@ class StudentDashboardViewNotification:
     def load_notifications(self):
         """Load notifications from controller or sample data"""
         if self.notification_controller:
-            notifications = self.notification_controller.get_all_notifications()
+            notifications = (
+                self.notification_controller.student_view_all_notifications()
+            )
         else:
             # Sample data if no controller
-            notifications = [
-                {
-                    "_id": "1",
-                    "title": "Welcome to the System",
-                    "date": "date: 11/07/2025",
-                    "content": "Welcome to our student management system. \
-                        Please update your profile information.",
-                },
-                {
-                    "_id": "2",
-                    "title": "Midterm Exam Schedule Released",
-                    "date": "date: 11/06/2025",
-                    "content": "The midterm examination schedule has been posted. \
-                        Please check your student portal.",
-                },
-                {
-                    "_id": "3",
-                    "title": "Fee Payment Reminder",
-                    "date": "date: 11/05/2025",
-                    "content": "This is a reminder that tuition fees are due \
-                        by the end of this month.",
-                },
-                {
-                    "_id": "4",
-                    "title": "Campus Event: Tech Conference",
-                    "date": "date: 11/04/2025",
-                    "content": "Join us for an exciting tech \
-                        conference featuring industry leaders next week.",
-                },
-                {
-                    "_id": "5",
-                    "title": "Library Hours Extended",
-                    "date": "date: 11/03/2025",
-                    "content": "The library will now be open until 10 PM \
-                        on weekdays during exam season.",
-                },
-                {
-                    "_id": "6",
-                    "title": "Career Fair Announcement",
-                    "date": "date: 11/02/2025",
-                    "content": "Annual career fair will be held next month.\
-                        Register early to meet top employers.",
-                },
-            ]
+            print("Can not fetch any annoucement datas")
 
         # Create notification items
         for notif in notifications:
@@ -150,7 +111,7 @@ class StudentDashboardViewNotification:
         # Title
         title_label = ctk.CTkLabel(
             content_frame,
-            text=f"News: {notification.get('title', '...')}",
+            text=f"News: {notification.title}",
             font=ctk.CTkFont(family="Arial", size=18, weight="bold"),
             text_color="#22C55E",
             anchor="w",
@@ -162,7 +123,7 @@ class StudentDashboardViewNotification:
         # Date
         date_label = ctk.CTkLabel(
             content_frame,
-            text=notification.get("date", "date: xx/xx/xxxx"),
+            text=notification.createAt,
             font=ctk.CTkFont(family="Arial", size=14),
             text_color="black",
             anchor="w",
@@ -171,18 +132,9 @@ class StudentDashboardViewNotification:
         date_label.pack(anchor="w")
         date_label.bind("<Button-1>", lambda e, n=notification: self.open_detail(n))
 
-    def open_detail(self, notification):
+    def open_detail(self, notification_data):
         """Open notification detail page"""
-        if self.detail_callback:
-            # Pass notification ID or full data
-            notification_id = notification.get("_id")
-            if notification_id:
-                self.detail_callback(notification_id)
-            else:
-                # If no ID, pass the full notification data
-                self.detail_callback(notification)
-        else:
-            print(f"Clicked notification: {notification.get('title')}")
+        self.detail_callback(notification_data)
 
 
 # Example usage

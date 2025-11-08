@@ -19,7 +19,8 @@ from views.email_sent import EmailSent
 
 from views.forgot_password import ForgotPasswordApp
 
-# from views.notification_detail import NotificationDetailApp
+from views.notification_detail import NotificationDetailApp
+
 from models.database import db
 
 
@@ -54,10 +55,11 @@ class MainApp:
         self.current_frame = LoginNotificationApp(
             self.container,
             self.show_forgot_password,
-            None,
+            self.show_notification_detail_onLogin,
             self.show_student_dashboard,
             self.handle_login,
             self.show_admin_dashboard,
+            notifications_controller=self.notifications_controller,
         )
 
     def handle_login(self, username, password):
@@ -126,22 +128,27 @@ class MainApp:
         result = self.auth_controller.recover_password(email)
         return result
 
-    # def show_notification_detail(self, notification_id):
-    #     pass
+    def show_notification_detail_onLogin(self, notification_data):
+        """Show notification detail view"""
+        if notification_data:
+            for widget in self.container.winfo_children():
+                widget.destroy()
 
-    #     """Show notification detail view"""
-    #     notification = self.notification_controller.\
-    # get_notification_detail(notification_id)
+            self.current_frame = NotificationDetailApp(
+                self.container, self.show_login, notification_data
+            )
 
-    #     if notification:
-    #         for widget in self.container.winfo_children():
-    #             widget.destroy()
+    def show_notification_detail_onDashBoard(self, notification_data):
+        """Show notification detail view"""
+        if notification_data:
+            for widget in self.container.winfo_children():
+                widget.destroy()
 
-    #         self.current_frame = NotificationDetailApp(
-    #             self.container,
-    #             self.show_login,
-    #             notification
-    #         )
+            self.current_frame = NotificationDetailApp(
+                self.container,
+                self.show_student_dashboard_view_notifications,
+                notification_data,
+            )
 
     def show_student_dashboard(self):
         """Show student dashboard view"""
@@ -164,9 +171,8 @@ class MainApp:
         self.current_frame = StudentDashboardViewNotification(
             self.container,
             self.show_student_dashboard,
-            # self.handle_password_recovery
-            None,
-            None,
+            self.show_notification_detail_onDashBoard,
+            self.notifications_controller,
         )
 
     def show_financial_summary(self):

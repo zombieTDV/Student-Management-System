@@ -1,5 +1,7 @@
 import customtkinter as ctk
 
+from controllers.notifications_controller import NotificationsController
+
 
 class LoginNotificationApp:
     def __init__(
@@ -10,6 +12,7 @@ class LoginNotificationApp:
         student_dashboard_callback,
         handle_login_callback,
         admin_dashboard_callback,
+        notifications_controller: NotificationsController,
     ):
         self.parent = parent
         self.forgot_password_callback = forgot_password_callback
@@ -17,6 +20,8 @@ class LoginNotificationApp:
         self.student_dashboard_callback = student_dashboard_callback
         self.handle_login_callback = handle_login_callback
         self.admin_dashboard_callback = admin_dashboard_callback
+
+        self.notifications_controller = notifications_controller
 
         # Set theme and color
         ctk.set_appearance_mode("light")
@@ -52,19 +57,9 @@ class LoginNotificationApp:
         self.scrollable_frame.pack(fill="both", expand=True, padx=10, pady=(0, 20))
 
         # Sample notifications data (you can load this from database/API)
-        self.notifications = [
-            {
-                "title": "System Update Available",
-                "date": "date: 11/03/2025",
-                "content": "A new system update is now available...",
-            },
-            {
-                "title": "New Feature Released",
-                "date": "date: 11/02/2025",
-                "content": "We're excited to announce a new feature...",
-            },
-            # ... more notifications
-        ]
+        self.notifications = (
+            self.notifications_controller.student_view_all_notifications()
+        )
 
         # Load notifications
         self.load_notifications()
@@ -161,7 +156,7 @@ class LoginNotificationApp:
 
             title_label = ctk.CTkLabel(
                 notif_item,
-                text=notif["title"],
+                text=notif.title,
                 font=ctk.CTkFont(family="Arial", size=14, weight="bold"),
                 text_color="#22C55E",
                 anchor="w",
@@ -172,7 +167,7 @@ class LoginNotificationApp:
 
             date_label = ctk.CTkLabel(
                 notif_item,
-                text=notif["date"],
+                text=notif.createAt,
                 font=ctk.CTkFont(family="Arial", size=12),
                 text_color="black",
                 anchor="w",

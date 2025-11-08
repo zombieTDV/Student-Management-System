@@ -45,7 +45,7 @@ class NotificationDetailApp:
         # Title text
         title_label = ctk.CTkLabel(
             title_section,
-            text=notification_data.get("title", "TITLE"),
+            text=notification_data.title,
             font=ctk.CTkFont(family="Arial", size=32, weight="bold"),
             text_color="black",
         )
@@ -60,7 +60,7 @@ class NotificationDetailApp:
         # Content text (italic)
         content_label = ctk.CTkLabel(
             content_scroll,
-            text=notification_data.get("content", "CONTENTS"),
+            text=notification_data.content,
             font=ctk.CTkFont(family="Arial", size=18, slant="italic"),
             text_color="black",
             justify="left",
@@ -71,7 +71,7 @@ class NotificationDetailApp:
         # Date label (bottom right)
         date_label = ctk.CTkLabel(
             content_frame,
-            text=notification_data.get("date", "date: xx/xx/xxxx"),
+            text=notification_data.createAt,
             font=ctk.CTkFont(family="Arial", size=14),
             text_color="black",
         )
