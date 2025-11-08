@@ -134,3 +134,7 @@ class Admin(Account):
         except Exception as e:
             print(f"Lỗi khi chỉnh sửa thanh toán: {e}")
             return False
+
+
+# a = Admin(username = "admin", email = "admin@", password = "admin123")
+# a.save()

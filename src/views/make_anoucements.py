@@ -1,11 +1,23 @@
 import customtkinter as ctk
 from datetime import datetime
 
+from controllers.notifications_controller import NotificationsController
+from controllers.auth_controller import AuthController
+
 
 class MakeAnnouncement:
-    def __init__(self, parent, back_callback=None):
+    def __init__(
+        self,
+        parent,
+        back_callback,
+        notifications_controller: NotificationsController,
+        auth_controller: AuthController,
+    ):
         self.parent = parent
         self.back_callback = back_callback
+
+        self.notifications_controller = notifications_controller
+        self.auth_controller = auth_controller
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -149,6 +161,12 @@ class MakeAnnouncement:
 
         # Create announcement data
         announcement = {"title": title, "content": contents, "date": f"date: {date}"}
+
+        self.notifications_controller.admin_post_announcement(
+            announcement["title"],
+            announcement["content"],
+            self.auth_controller.current_account._id,
+        )
 
         print(f"Posting announcement: {announcement}")
         # TODO: Save to MongoDB via NotificationController

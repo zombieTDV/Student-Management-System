@@ -1,9 +1,9 @@
-# from models.account import Account
+from models.account import Account
 
 
 class AuthController:
     def __init__(self):
-        self.account_model = None
+        self.account_model = Account(username="", email="", role="", password="123")
         self.current_account = None
 
     def login(self, username, password):

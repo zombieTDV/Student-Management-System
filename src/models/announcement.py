@@ -10,16 +10,20 @@ except Exception as e:
 
 
 class Announcement:
-    def __init__(self, title, content, createBy):
+    def __init__(
+        self, title, content, createBy, createAt=None, _id=None, status="published"
+    ):
         """
         Khởi tạo một Thông báo.
         'createBy' là _id của Admin tạo ra nó.
         """
-        self._id = None
+        self._id = _id
         self.title = title
         self.content = content
         self.createBy = createBy  # Đây là ObjectId của Admin
-        self.createAt = datetime.datetime.now(datetime.UTC)
+        self.createAt = createAt or datetime.datetime.now(datetime.UTC)
+        self.status = status
+        # Trạng thái: 'published' (đã đăng), \'draft' (nháp), 'archived' (lưu trữ)
 
     def save(self):
         """Lưu (hoặc cập nhật) thông báo vào DB"""

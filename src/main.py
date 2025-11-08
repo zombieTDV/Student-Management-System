@@ -1,6 +1,7 @@
 # main.py
 import customtkinter as ctk
 from controllers.auth_controller import AuthController
+from controllers.notifications_controller import NotificationsController
 
 # from controllers.notification_controller import NotificationController
 from views.login import LoginNotificationApp
@@ -30,6 +31,7 @@ class MainApp:
 
         # Initialize controllers
         self.auth_controller = AuthController()
+        self.notifications_controller = NotificationsController()
         # self.notification_controller = NotificationController()
 
         # Container for views
@@ -39,7 +41,7 @@ class MainApp:
         self.current_frame = None
 
         # Show login screen
-        self.show_student_dashboard()
+        self.show_login()
 
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -55,6 +57,7 @@ class MainApp:
             None,
             self.show_student_dashboard,
             self.handle_login,
+            self.show_admin_dashboard,
         )
 
     def handle_login(self, username, password):
@@ -112,7 +115,10 @@ class MainApp:
             widget.destroy()
 
         self.current_frame = MakeAnnouncement(
-            self.container, self.show_admin_dashboard  # Back callback
+            self.container,
+            self.show_admin_dashboard,
+            self.notifications_controller,
+            self.auth_controller,
         )
 
     def handle_password_recovery(self, email):

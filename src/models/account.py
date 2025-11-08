@@ -1,4 +1,3 @@
-# models/account.py
 from models.database import db
 from bson.objectid import ObjectId
 import datetime
@@ -26,6 +25,28 @@ def hash_password(password):
     return f"{salt}${hashed_password}"
 
 
+def safe_compare(a, b):
+    """
+    Hàm so sánh chuỗi an toàn để chống tấn công timing attack.
+    Đây là hàm thay thế cho hashlib.compare_digest trên các phiên bản Python cũ.
+    """
+    # Mã hóa sang bytes để đảm bảo so sánh từng byte
+    try:
+        a_bytes = a.encode("utf-8")
+        b_bytes = b.encode("utf-8")
+    except AttributeError:
+        # Nếu một trong hai không phải là chuỗi (ví dụ: None)
+        return False
+
+    if len(a_bytes) != len(b_bytes):
+        return False
+
+    result = 0
+    for x, y in zip(a_bytes, b_bytes):
+        result |= x ^ y
+    return result == 0
+
+
 def check_password(password, stored_hash):
     """Kiểm tra mật khẩu có khớp với hash đã lưu không"""
     try:
@@ -36,7 +57,9 @@ def check_password(password, stored_hash):
         password_hash = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
         # So sánh an toàn
-        return hashlib.compare_digest(password_hash, hash_key)
+        # return hashlib.compare_digest(password_hash, hash_key) # <-- Lỗi ở đây
+        return safe_compare(password_hash, hash_key)  # <-- Đây là bản sửa lỗi
+
     except Exception as e:
         # Lỗi (ví dụ: chuỗi hash không đúng định dạng, rỗng, v.v.)
         print(f"Lỗi khi kiểm tra mật khẩu: {e}")
