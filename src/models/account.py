@@ -2,50 +2,29 @@ from models.database import db
 from bson.objectid import ObjectId
 import datetime
 import hashlib
-import os  # Cần thiết để tạo salt ngẫu nhiên
-import ssl  # Thêm import
-import smtplib  # Thêm import
-from email.message import EmailMessage  # Thêm import
-import secrets  # Thêm import (bảo mật hơn 'random')
-import string  # Thêm import
-# Tải collection một lần
+import os
+
+# Load collection once
 try:
     ACCOUNTS_COLLECTION = db.get_db()["accounts"]
 except Exception as e:
-    print(f"Lỗi khi kết nối tới collection 'accounts': {e}")
+    print(f"Error connecting to 'accounts' collection: {e}")
     exit(1)
-
-def _generate_random_password(length=6):
-    """Tạo mật khẩu ngẫu nhiên an toàn."""
-    # Bao gồm chữ cái, số, và ký tự đặc biệt
-    alphabet = string.ascii_letters + string.digits + string.punctuation
-    return ''.join(secrets.choice(alphabet) for i in range(length))
 
 
 def hash_password(password):
-    """Băm mật khẩu an toàn với salt dùng hashlib.SHA256"""
-    # Tạo một salt ngẫu nhiên
+    """Hash password securely with salt using hashlib.SHA256"""
     salt = os.urandom(16).hex()
-
-    # Băm mật khẩu với (salt + password)
     hashed_password = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
-
-    # Lưu salt và hash chung một chuỗi, phân cách bằng $
-    # Định dạng này rất phổ biến và dễ dàng parse
     return f"{salt}${hashed_password}"
 
 
 def safe_compare(a, b):
-    """
-    Hàm so sánh chuỗi an toàn để chống tấn công timing attack.
-    Đây là hàm thay thế cho hashlib.compare_digest trên các phiên bản Python cũ.
-    """
-    # Mã hóa sang bytes để đảm bảo so sánh từng byte
+    """Safe string comparison to prevent timing attacks."""
     try:
         a_bytes = a.encode("utf-8")
         b_bytes = b.encode("utf-8")
     except AttributeError:
-        # Nếu một trong hai không phải là chuỗi (ví dụ: None)
         return False
 
     if len(a_bytes) != len(b_bytes):
@@ -58,26 +37,18 @@ def safe_compare(a, b):
 
 
 def check_password(password, stored_hash):
-    """Kiểm tra mật khẩu có khớp với hash đã lưu không"""
+    """Check if password matches stored hash"""
     try:
-        # Tách salt và hash đã lưu
         salt, hash_key = stored_hash.split("$")
-
-        # Hash lại mật khẩu được cung cấp với salt đã lưu
         password_hash = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
-
-        # So sánh an toàn
-        # return hashlib.compare_digest(password_hash, hash_key) # <-- Lỗi ở đây
-        return safe_compare(password_hash, hash_key)  # <-- Đây là bản sửa lỗi
-
+        return safe_compare(password_hash, hash_key)
     except Exception as e:
-        # Lỗi (ví dụ: chuỗi hash không đúng định dạng, rỗng, v.v.)
-        print(f"Lỗi khi kiểm tra mật khẩu: {e}")
+        print(f"Error checking password: {e}")
         return False
 
 
 class Account:
-    """Lớp cơ sở cho tất cả các loại tài khoản (Admin, Student)"""
+    """Base class for all account types (Admin, Student)"""
 
     def __init__(
         self, username, email, role, password=None, _id=None, createAt=None, **kwargs
@@ -87,98 +58,43 @@ class Account:
         self.email = email
         self.role = role
 
-        # Gán các thuộc tính khác (nếu có, từ lớp con)
-        # ví dụ: fullName, dob... sẽ được gán ở đây
+        # Assign other attributes from child classes
         for key, value in kwargs.items():
-            if key not in ("password_hash"):  # Tránh ghi đè hash
+            if key not in ("password_hash"):
                 setattr(self, key, value)
 
-        # Xử lý mật khẩu
+        # Handle password
         if password:
-            # Băm mật khẩu mới khi được cung cấp
             self.password_hash = hash_password(password)
         elif _id is None:
-            # Nếu tạo mới mà không có pass, raise lỗi
-            raise ValueError("Mật khẩu là bắt buộc khi tạo tài khoản mới.")
+            raise ValueError("Password is required when creating new account.")
         else:
-            # Khi tải từ DB, chúng ta không truyền 'password',
-            # nhưng chúng ta cần lấy hash đã lưu
             if not hasattr(self, "password_hash"):
                 account_data = ACCOUNTS_COLLECTION.find_one({"_id": self._id})
-                # Gán trực tiếp hash đã lưu từ DB
                 self.password_hash = account_data.get("password_hash")
 
         self.createAt = createAt or datetime.datetime.utcnow()
 
     def save(self):
-        """Lưu (hoặc cập nhật) dữ liệu tài khoản vào collection 'accounts'"""
-
-        # Chúng ta cần phải lấy *TẤT CẢ* dữ liệu của lớp con
-        # sử dụng vars(self)
+        """Save or update account data to 'accounts' collection"""
         account_data = vars(self).copy()
 
-        # Xóa _id nếu nó là None (trường hợp tạo mới)
         if self._id is None:
             account_data.pop("_id", None)
 
         if self._id:
-            # Cập nhật
+            # Update
             ACCOUNTS_COLLECTION.update_one({"_id": self._id}, {"$set": account_data})
         else:
-            # Thêm mới
-            # Đảm bảo không lưu password gốc (nếu còn tồn)
+            # Insert new
             account_data.pop("password", None)
             result = ACCOUNTS_COLLECTION.insert_one(account_data)
             self._id = result.inserted_id
         return self._id
 
-    def _send_password_email(self, new_password):
-            """Gửi email chứa mật khẩu mới cho user (instance method)."""
-            
-            # Lấy credentials email từ .env
-            EMAIL_USER = os.getenv("EMAIL_USER")
-            EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") # Phải là App Password
-            
-            if not EMAIL_USER or not EMAIL_PASSWORD:
-                print("\n*** CẢNH BÁO: EMAIL_USER hoặc EMAIL_PASSWORD chưa được cài đặt trong .env.")
-                print(f"*** Email chưa được gửi tới {self.email}.")
-                print(f"*** Mật khẩu mới (dùng để test): {new_password}\n")
-                return False # Trả về False nếu không gửi được
-
-            # Tạo nội dung email
-            msg = EmailMessage()
-            msg.set_content(f"""
-    Chào {self.username},
-
-    Yêu cầu reset mật khẩu của bạn đã được thực hiện.
-    Mật khẩu mới của bạn là: {new_password}
-
-    Vui lòng đăng nhập và đổi mật khẩu này ngay lập tức.
-
-    Trân trọng,
-    Hệ thống Quản lý Sinh viên
-            """)
-            msg['Subject'] = 'Mật khẩu mới cho Hệ thống QL Sinh viên'
-            msg['From'] = EMAIL_USER
-            msg['To'] = self.email
-
-            try:
-                # Gửi email qua Gmail (dùng SSL)
-                context = ssl.create_default_context()
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
-                    server.login(EMAIL_USER, EMAIL_PASSWORD)
-                    server.send_message(msg)
-                print(f"Đã gửi mật khẩu mới tới {self.email}")
-                return True
-            except Exception as e:
-                print(f"LỖI khi gửi email: {e}")
-                print(f"Mật khẩu mới (KHÔNG GỬI ĐƯỢC): {new_password}")
-                return False
-
-
     @classmethod
     def find_by_username(cls, username):
-        """Tìm tài khoản bằng username."""
+        """Find account by username."""
         account_data = ACCOUNTS_COLLECTION.find_one({"username": username})
         if account_data:
             return cls._instantiate_correct_class(account_data)
@@ -186,100 +102,136 @@ class Account:
 
     @classmethod
     def find_by_id(cls, account_id):
-        """Tìm tài khoản bằng ID."""
+        """Find account by ID."""
         try:
             account_data = ACCOUNTS_COLLECTION.find_one({"_id": ObjectId(account_id)})
             if account_data:
                 return cls._instantiate_correct_class(account_data)
             return None
         except Exception as e:
-            print(f"Lỗi khi tìm ID: {e}")
+            print(f"Error finding by ID: {e}")
             return None
 
     @classmethod
     def find_by_email(cls, email):
-        """Tìm tài khoản bằng email."""
-        account_data = ACCOUNTS_COLLECTION.find_one({'email': email})
+        """Find account by email - MODEL ONLY FINDS DATA"""
+        account_data = ACCOUNTS_COLLECTION.find_one({"email": email})
         if account_data:
             return cls._instantiate_correct_class(account_data)
         return None
 
     @classmethod
-    def forgot_password(cls, email):
+    def find_all_by_role(cls, role):
         """
-        Tìm tài khoản bằng email, tạo pass mới, lưu, và gửi email.
-        Đây là phương thức Controller sẽ gọi.
-        """
-        # 1. Tìm tài khoản
-        account = cls.find_by_email(email)
-        
-        if not account:
-            print(f"Không tìm thấy tài khoản nào với email: {email}")
-            return False
-        
-        try:
-            # 2. Tạo mật khẩu ngẫu nhiên
-            new_password = _generate_random_password()
-            
-            # 3. Cập nhật mật khẩu (hàm này đã hash và save)
-            account.update_password(new_password)
-            
-            # 4. Gửi email
-            success = account._send_password_email(new_password)
-            
-            if success:
-                print(f"Reset mật khẩu thành công cho {email}.")
-                return True
-            else:
-                print(f"Reset mật khẩu THẤT BẠI (lỗi gửi mail) cho {email}.")
-                return False
-                
-        except Exception as e:
-            print(f"Lỗi trong quá trình forgot_password: {e}")
-            return False
+        Find all accounts by role (e.g., 'student', 'admin')
 
+        Args:
+            role (str): The role to filter by ('student' or 'admin')
+
+        Returns:
+            list: List of Account objects (Student or Admin instances)
+        """
+        try:
+            accounts_data = ACCOUNTS_COLLECTION.find({"role": role})
+            accounts = []
+
+            for account_data in accounts_data:
+                account = cls._instantiate_correct_class(account_data)
+                accounts.append(account)
+
+            return accounts
+        except Exception as e:
+            print(f"Error finding accounts by role: {e}")
+            return []
+
+    @classmethod
+    def find_all_students(cls):
+        """
+        Convenience method to find all student accounts.
+
+        Returns:
+            list: List of Student objects
+        """
+        return cls.find_all_by_role("student")
+
+    @classmethod
+    def find_all_admins(cls):
+        """
+        Convenience method to find all admin accounts.
+
+        Returns:
+            list: List of Admin objects
+        """
+        return cls.find_all_by_role("admin")
+
+    @classmethod
+    def count_by_role(cls, role):
+        """
+        Count accounts by role.
+
+        Args:
+            role (str): The role to count
+
+        Returns:
+            int: Number of accounts with that role
+        """
+        try:
+            return ACCOUNTS_COLLECTION.count_documents({"role": role})
+        except Exception as e:
+            print(f"Error counting accounts: {e}")
+            return 0
+
+    def delete(self):
+        """
+        Delete this account from database.
+
+        Returns:
+            bool: True if deleted successfully
+        """
+        try:
+            if self._id:
+                result = ACCOUNTS_COLLECTION.delete_one({"_id": self._id})
+                return result.deleted_count > 0
+            return False
+        except Exception as e:
+            print(f"Error deleting account: {e}")
+            return False
 
     @classmethod
     def authenticate(cls, username, password):
-        """Xác thực người dùng và trả về đối tượng (Student hoặc Admin)"""
+        """Authenticate user and return object (Student or Admin)"""
         account = cls.find_by_username(username)
 
-        # `account.password_hash` sẽ chứa chuỗi "salt$hash"
         if account and check_password(password, account.password_hash):
-            return account  # Đây sẽ là instance của Student hoặc Admin
+            return account
 
         return None
 
     def update_password(self, new_password):
-        """Cập nhật mật khẩu cho tài khoản (instance method)"""
+        """Update password for account (instance method)"""
         self.password_hash = hash_password(new_password)
-        # Chỉ cập nhật trường password_hash trong DB
         ACCOUNTS_COLLECTION.update_one(
             {"_id": self._id}, {"$set": {"password_hash": self.password_hash}}
         )
-        print(f"Đã cập nhật mật khẩu cho {self.username}")
+        print(f"Password updated for {self.username}")
         return True
 
     @staticmethod
     def _instantiate_correct_class(account_data):
         """
-        Hàm helper quan trọng: Quyết định khởi tạo lớp Student hay Admin
-        dựa trên trường 'role'.
+        Helper function: Decide whether to instantiate Student or Admin
+        based on 'role' field.
         """
         role = account_data.get("role")
 
-        # Chúng ta phải import ở đây để tránh lỗi 'circular import'
         from models.student import Student
         from models.admin import Admin
 
-        # **kwargs sẽ truyền toàn bộ dict dữ liệu vào constructor
-        # của Student hoặc Admin
         if role == "student":
             return Student(**account_data)
         elif role == "admin":
             return Admin(**account_data)
         else:
-            # Trả về Account cơ sở nếu không rõ role
             return Account(**account_data)
 
     def __repr__(self):

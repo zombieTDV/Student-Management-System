@@ -76,3 +76,10 @@ class Student(Account):
         # Sử dụng phương thức của lớp Announcement
         notifications = Announcement.find_all(status="published")
         return notifications
+
+
+# a = Student("Truong Do Vuong", "12/02/2006", "male", \
+# "HCM", "0923756384", "Data Science", username = "sv",
+# email = "zombietdv2701@gmail.com", password = "sv123")
+
+# a.save()
