@@ -1,11 +1,22 @@
 import customtkinter as ctk
 from tkinter import ttk
 
+from controllers.student_controller import StudentController
+from controllers.auth_controller import AuthController
+
 
 class StudentManagement:
-    def __init__(self, parent, back_callback=None):
+    def __init__(
+        self,
+        parent,
+        back_callback,
+        student_controller: StudentController,
+        auth_controller: AuthController,
+    ):
         self.parent = parent
         self.back_callback = back_callback
+        self.student_controller = student_controller  # Store controller reference
+        self.auth_controller = auth_controller
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -120,8 +131,8 @@ class StudentManagement:
 
         self.tree.pack(fill="both", expand=True)
 
-        # Load sample data
-        self.load_sample_data()
+        # Load student data from controller
+        self.load_students_from_controller()
 
         # Buttons frame
         buttons_frame = ctk.CTkFrame(main_frame, fg_color="white")
@@ -159,6 +170,48 @@ class StudentManagement:
 
         # Bind double-click to edit
         self.tree.bind("<Double-1>", self.on_double_click)
+
+    def load_students_from_controller(self):
+        """Load student data from student_controller"""
+        try:
+            # Get all students from controller
+            result = self.student_controller.get_all_students()
+
+            if result["success"]:
+                # Clear existing data in treeview
+                for item in self.tree.get_children():
+                    self.tree.delete(item)
+
+                # Load students into treeview
+                for student in result["students"]:
+                    # Map student data to table columns
+                    values = (
+                        student.get("id", ""),  # StudentID (MongoDB _id)
+                        student.get("username", ""),  # Username
+                        "*******",  # Password
+                        student.get("email", ""),  # Email
+                        student.get("fullName", ""),  # FullName
+                        student.get("dob", ""),  # DOB
+                        student.get("gender", ""),  # Gender
+                        student.get("address", ""),  # Address
+                        student.get("contact", ""),  # Contact
+                        student.get("major", ""),  # Major
+                        student.get("imageURL", ""),  # ImageURL
+                    )
+                    self.tree.insert("", "end", values=values)
+
+                print(f"✓ Loaded {result['count']} students from database")
+            else:
+                print(
+                    f"✗ Failed to load students: {result.get('message', 'Unknown error')}"
+                )
+                # Load sample data as fallback
+                self.load_sample_data()
+
+        except Exception as e:
+            print(f"✗ Error loading students from controller: {e}")
+            # Load sample data as fallback
+            self.load_sample_data()
 
     def load_sample_data(self):
         """Load sample student data"""
@@ -470,45 +523,52 @@ class StudentManagement:
         ]
 
         # Add to treeview
-        self.tree.insert("", "end", values=values)
-        print(f"New student registered: ID={student_id}, Username={username}")
+        resigter_callback = self.student_controller.register_student_by_admin(
+            self.auth_controller.current_account, values[1], values[2]
+        )
+        if resigter_callback["success"] is True:
+            self.tree.insert("", "end", values=values)
+            print(f"New student registered: ID={student_id}, Username={username}")
 
-        dialog.destroy()
+            dialog.destroy()
 
-        # Show success message
-        success_dialog = ctk.CTkToplevel(self.parent)
-        success_dialog.title("Success")
-        success_dialog.geometry("400x200")
-        success_dialog.grab_set()
+            # Show success message
+            success_dialog = ctk.CTkToplevel(self.parent)
+            success_dialog.title("Success")
+            success_dialog.geometry("400x200")
+            success_dialog.grab_set()
 
-        ctk.CTkLabel(
-            success_dialog,
-            text="✓ Student Registered Successfully!",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#22C55E",
-        ).pack(pady=20)
-        ctk.CTkLabel(
-            success_dialog,
-            text=f"Student ID: {student_id}\nUsername: {username}",
-            font=ctk.CTkFont(size=14),
-        ).pack(pady=10)
-        ctk.CTkLabel(
-            success_dialog,
-            text="Student can update other details later.",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
-        ).pack(pady=5)
-        ctk.CTkButton(
-            success_dialog,
-            text="OK",
-            width=120,
-            height=40,
-            command=success_dialog.destroy,
-        ).pack(pady=20)
+            ctk.CTkLabel(
+                success_dialog,
+                text="✓ Student Registered Successfully!",
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color="#22C55E",
+            ).pack(pady=20)
+            ctk.CTkLabel(
+                success_dialog,
+                text=f"Student ID: {student_id}\nUsername: {username}",
+                font=ctk.CTkFont(size=14),
+            ).pack(pady=10)
+            ctk.CTkLabel(
+                success_dialog,
+                text="Student can update other details later.",
+                font=ctk.CTkFont(size=12),
+                text_color="gray",
+            ).pack(pady=5)
+            ctk.CTkButton(
+                success_dialog,
+                text="OK",
+                width=120,
+                height=40,
+                command=success_dialog.destroy,
+            ).pack(pady=20)
+        else:
+            print(resigter_callback)
 
     def save_changes(self):
         """Save all changes to database"""
         print("Saving all changes to database...")
+
         # Get all data from treeview
         all_students = []
         for item in self.tree.get_children():
@@ -516,22 +576,162 @@ class StudentManagement:
             all_students.append(values)
 
         print(f"Total students: {len(all_students)}")
-        # TODO: Save to MongoDB
 
-        # Show success message
-        success_dialog = ctk.CTkToplevel(self.parent)
-        success_dialog.title("Success")
-        success_dialog.geometry("300x150")
-        success_dialog.grab_set()
+        # Track results
+        success_count = 0
+        error_count = 0
+        error_messages = []
+        print("ok")
+        # Update each student in database
+        for student_values in all_students:
+            try:
+                # Extract student data from treeview row
+                student_id = student_values[0]  # StudentID (MongoDB _id)
+                username = student_values[1]
+                # password = student_values[2]  # Skip password (it's masked)
+                email = student_values[3]
+                full_name = student_values[4]
+                dob = student_values[5]
+                gender = student_values[6]
+                address = student_values[7]
+                contact = student_values[8]
+                major = student_values[9]
+                image_url = student_values[10]
 
-        ctk.CTkLabel(
-            success_dialog,
-            text="✓ Changes saved successfully!",
-            font=ctk.CTkFont(size=16),
-        ).pack(pady=30)
-        ctk.CTkButton(
-            success_dialog, text="OK", width=100, command=success_dialog.destroy
-        ).pack(pady=10)
+                # Get the student object from database
+                from models.account import Account
+
+                student = Account.find_by_id(student_id)
+
+                if not student:
+                    error_count += 1
+                    error_messages.append(f"Student {username} not found in database")
+                    continue
+
+                # Prepare update data (only include non-empty fields)
+                updated_data = {}
+
+                if email and email.strip():
+                    updated_data["email"] = email.strip()
+                if full_name and full_name.strip():
+                    updated_data["fullName"] = full_name.strip()
+                if dob and dob.strip():
+                    updated_data["dob"] = dob.strip()
+                if gender and gender.strip():
+                    updated_data["gender"] = gender.strip()
+                if address and address.strip():
+                    updated_data["address"] = address.strip()
+                if contact and str(contact).strip():
+                    updated_data["contact"] = str(contact).strip()
+                if major and major.strip():
+                    updated_data["major"] = major.strip()
+                if image_url and str(image_url).strip() and str(image_url) != "None":
+                    updated_data["imageURL"] = str(image_url).strip()
+
+                # Update student profile using controller
+                result = self.student_controller.update_student_profile(
+                    student, updated_data
+                )
+
+                if result["success"]:
+                    success_count += 1
+                    print(f"✓ Updated {username}: {result.get('message', '')}")
+                else:
+                    error_count += 1
+                    error_msg = f"{username}: {result.get('message', 'Unknown error')}"
+                    error_messages.append(error_msg)
+                    print(f"✗ Failed to update {username}: {result.get('message', '')}")
+
+            except Exception as e:
+                print(f"✗ Error updating student: {e}")
+
+        # Show result dialog
+        if error_count == 0:
+            # All successful
+            success_dialog = ctk.CTkToplevel(self.parent)
+            success_dialog.title("Success")
+            success_dialog.geometry("400x200")
+            success_dialog.grab_set()
+
+            ctk.CTkLabel(
+                success_dialog,
+                text="✓ All changes saved successfully!",
+                font=ctk.CTkFont(size=18, weight="bold"),
+                text_color="#22C55E",
+            ).pack(pady=20)
+
+            ctk.CTkLabel(
+                success_dialog,
+                text=f"Updated {success_count} student(s)",
+                font=ctk.CTkFont(size=14),
+            ).pack(pady=10)
+
+            ctk.CTkButton(
+                success_dialog,
+                text="OK",
+                width=120,
+                height=40,
+                command=success_dialog.destroy,
+            ).pack(pady=20)
+        else:
+            # Some errors occurred
+            result_dialog = ctk.CTkToplevel(self.parent)
+            result_dialog.title("Save Results")
+            result_dialog.geometry("500x400")
+            result_dialog.grab_set()
+
+            ctk.CTkLabel(
+                result_dialog,
+                text="Save Results",
+                font=ctk.CTkFont(size=20, weight="bold"),
+            ).pack(pady=20)
+
+            # Success count
+            ctk.CTkLabel(
+                result_dialog,
+                text=f"✓ Successfully saved: {success_count}",
+                font=ctk.CTkFont(size=14),
+                text_color="#22C55E",
+            ).pack(pady=5)
+
+            # Error count
+            ctk.CTkLabel(
+                result_dialog,
+                text=f"✗ Failed to save: {error_count}",
+                font=ctk.CTkFont(size=14),
+                text_color="#FF0000",
+            ).pack(pady=5)
+
+            if error_messages:
+                ctk.CTkLabel(
+                    result_dialog,
+                    text="Error Details:",
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                ).pack(pady=(10, 5))
+
+                # Scrollable frame for error messages
+                error_frame = ctk.CTkScrollableFrame(
+                    result_dialog, width=450, height=150, fg_color="#FFF0F0"
+                )
+                error_frame.pack(pady=10, padx=20)
+
+                for error_msg in error_messages:
+                    ctk.CTkLabel(
+                        error_frame,
+                        text=f"• {error_msg}",
+                        font=ctk.CTkFont(size=11),
+                        text_color="#FF0000",
+                        anchor="w",
+                        wraplength=400,
+                    ).pack(anchor="w", padx=10, pady=2)
+
+            ctk.CTkButton(
+                result_dialog,
+                text="OK",
+                width=120,
+                height=40,
+                command=result_dialog.destroy,
+            ).pack(pady=20)
 
 
 # Example usage
@@ -543,5 +743,5 @@ if __name__ == "__main__":
     container = ctk.CTkFrame(root)
     container.pack(fill="both", expand=True)
 
-    app = StudentManagement(container)
+    app = StudentManagement(container, None, None)
     root.mainloop()

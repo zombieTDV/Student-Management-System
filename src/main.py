@@ -2,6 +2,7 @@
 import customtkinter as ctk
 from controllers.auth_controller import AuthController
 from controllers.notifications_controller import NotificationsController
+from controllers.student_controller import StudentController
 
 from views.login import LoginNotificationApp
 
@@ -35,7 +36,7 @@ class MainApp:
         # Initialize controllers
         self.auth_controller = AuthController()
         self.notifications_controller = NotificationsController()
-        # self.notification_controller = NotificationController()
+        self.student_controller = StudentController()
 
         # Container for views
         self.container = ctk.CTkFrame(root)
@@ -110,7 +111,10 @@ class MainApp:
             widget.destroy()
 
         self.current_frame = StudentManagement(
-            self.container, self.show_admin_dashboard
+            self.container,
+            back_callback=self.show_admin_dashboard,
+            student_controller=self.student_controller,
+            auth_controller=self.auth_controller,
         )
 
     def show_make_announcement(self):
