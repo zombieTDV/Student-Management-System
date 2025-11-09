@@ -1,11 +1,12 @@
 import customtkinter as ctk
+from controllers.auth_controller import AuthController
 
 
 class ForgotPasswordApp:
-    def __init__(self, parent, back_callback=None, email_sent_callback=None):
+    def __init__(self, parent, back_callback, auth_controller: AuthController):
         self.parent = parent
         self.back_callback = back_callback
-        self.email_sent_callback = email_sent_callback
+        self.auth_controller = auth_controller
 
         # Set theme and color
         ctk.set_appearance_mode("light")
@@ -56,7 +57,7 @@ class ForgotPasswordApp:
         # Continue button
         continue_btn = ctk.CTkButton(
             main_frame,
-            text="Continute",
+            text="Continue",
             font=ctk.CTkFont(family="Arial", size=28, weight="bold"),
             fg_color="#00D600",
             hover_color="#00B000",
@@ -86,7 +87,51 @@ class ForgotPasswordApp:
             back_btn.pack(pady=10)
 
     def recover_password(self):
-        email = self.email_entry.get()
-        print(f"Password recovery requested for: {email}")
-        self.email_sent_callback()
-        # Add your password recovery logic here
+        """Handle password recovery using auth_controller"""
+        email = self.email_entry.get().strip()
+
+        # Validate email input
+        if not email:
+            self.show_message("Error", "Please enter your email", error=True)
+            return
+
+        # Call auth_controller to handle recovery
+        result = self.auth_controller.recover_password(email)
+
+        if result["success"]:
+            # Success - show message and go back to login
+            self.show_message(
+                "Success",
+                result["message"],
+                callback=self.back_callback,  # Go back after OK
+            )
+        else:
+            # Error - show error message
+            self.show_message("Error", result["message"], error=True)
+
+    def show_message(self, title, message, error=False, callback=None):
+        """Show message dialog"""
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title(title)
+        dialog.geometry("400x200")
+        dialog.grab_set()
+
+        # Icon and color
+        icon = "✗" if error else "✓"
+        color = "#FF0000" if error else "#22C55E"
+
+        ctk.CTkLabel(
+            dialog,
+            text=f"{icon} {message}",
+            font=ctk.CTkFont(size=16),
+            text_color=color,
+            wraplength=350,
+        ).pack(pady=40)
+
+        ctk.CTkButton(
+            dialog,
+            text="OK",
+            width=120,
+            height=40,
+            command=lambda: [dialog.destroy(), callback() if callback else None],
+        ).pack(pady=10)

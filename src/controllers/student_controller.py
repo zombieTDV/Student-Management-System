@@ -17,12 +17,12 @@ class StudentController:
             if not isinstance(student, Student):
                 return {"success": False, "message": "Invalid student object"}
 
-            # Validate email if provided
-            if "email" in updated_data and updated_data["email"]:
-                email = updated_data["email"].strip()
-                if not StudentController._validate_email(email):
-                    return {"success": False, "message": "Invalid email format"}
-                updated_data["email"] = email
+            # # Validate email if provided
+            # if "email" in updated_data and updated_data["email"]:
+            #     email = updated_data["email"].strip()
+            #     if not StudentController._validate_email(email):
+            #         return {"success": False, "message": "Invalid email format"}
+            #     updated_data["email"] = email
 
             # Validate contact if provided
             if "contact" in updated_data and updated_data["contact"]:
@@ -84,7 +84,7 @@ class StudentController:
         Admin đăng ký tài khoản sinh viên mới, sử dụng username và password
         """
         try:
-            # Xác định phải quyền của admin không
+            # Xác định phải quyền của admin  không
             if not hasattr(admin, "role") or admin.role != "admin":
                 return {
                     "success": False,

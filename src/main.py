@@ -18,7 +18,6 @@ from views.admin_dashboard import AdminDashboard
 from views.student_management import StudentManagement
 
 from views.make_anoucements import MakeAnnouncement
-from views.email_sent import EmailSent
 
 from views.forgot_password import ForgotPasswordApp
 
@@ -77,20 +76,10 @@ class MainApp:
 
         self.current_frame = ForgotPasswordApp(
             self.container,
-            self.show_login,
+            back_callback=self.show_login,
             # self.handle_password_recovery
-            self.show_email_sent,
-        )
-
-    def show_email_sent(self):
-        """Show the succesed email sent message"""
-        for widget in self.container.winfo_children():
-            widget.destroy()
-
-        self.current_frame = EmailSent(
-            self.container,
-            self.show_login,
-            # self.handle_password_recovery
+            # email_sent_callback=self.show_email_sent,
+            auth_controller=self.auth_controller,
         )
 
     def show_admin_dashboard(self):

@@ -293,9 +293,9 @@ class StudentManagement:
             values = self.tree.item(item[0])["values"]
             print(f"Edit student: {values}")
             # Open edit dialog or form
-            self.open_edit_dialog(values)
+            self.open_edit_dialog(item[0], values)  # Pass item reference too
 
-    def open_edit_dialog(self, student_data):
+    def open_edit_dialog(self, tree_item, student_data):
         """Open dialog to edit student information"""
         # Create a popup window
         dialog = ctk.CTkToplevel(self.parent)
@@ -334,8 +334,15 @@ class StudentManagement:
             ctk.CTkLabel(frame, text=field + ":", width=100, anchor="w").pack(
                 side="left"
             )
-            entry = ctk.CTkEntry(frame, width=350)
-            entry.insert(0, str(value))
+
+            # Make StudentID, Username, Password read-only
+            if field in ["StudentID", "Username", "Password"]:
+                entry = ctk.CTkEntry(frame, width=350, state="readonly")
+                entry.insert(0, str(value))
+            else:
+                entry = ctk.CTkEntry(frame, width=350)
+                entry.insert(0, str(value))
+
             entry.pack(side="left", padx=10)
             entries[field] = entry
 
@@ -347,24 +354,90 @@ class StudentManagement:
             btn_frame,
             text="Save",
             width=120,
-            command=lambda: self.save_edit(dialog, entries),
+            command=lambda: self.save_edit(dialog, tree_item, entries, student_data[0]),
         ).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text="Cancel", width=120, command=dialog.destroy).pack(
             side="left", padx=10
         )
 
-    def save_edit(self, dialog, entries):
-        """Save edited student data"""
-        # Get values from entries
-        values = [entry.get() for entry in entries.values()]
-        print(f"Saving: {values}")
+    def save_edit(self, dialog, tree_item, entries, student_id):
+        """Save edited student data to database"""
+        try:
+            # Get student from database
+            from models.account import Account
 
-        # Update the selected row in treeview
-        selected = self.tree.selection()
-        if selected:
-            self.tree.item(selected[0], values=values)
+            student = Account.find_by_id(student_id)
 
-        dialog.destroy()
+            if not student:
+                self.show_error_dialog("Student not found in database")
+                return
+
+            # Prepare update data (skip ID, username, password)
+            updated_data = {
+                "email": entries["Email"].get().strip(),
+                "fullName": entries["FullName"].get().strip(),
+                "dob": entries["DOB"].get().strip(),
+                "gender": entries["Gender"].get().strip(),
+                "address": entries["Address"].get().strip(),
+                "contact": entries["Contact"].get().strip(),
+                "major": entries["Major"].get().strip(),
+            }
+
+            # Add imageURL if not empty
+            image_url = entries["ImageURL"].get().strip()
+            if image_url and image_url != "None":
+                updated_data["imageURL"] = image_url
+
+            # Remove empty values
+            updated_data = {k: v for k, v in updated_data.items() if v}
+
+            # Update in database
+            result = self.student_controller.update_student_profile(
+                student, updated_data
+            )
+
+            if result["success"]:
+                # Update treeview
+                values = [entry.get() for entry in entries.values()]
+                self.tree.item(tree_item, values=values)
+
+                dialog.destroy()
+                self.show_success_dialog("Student updated successfully!")
+            else:
+                self.show_error_dialog(result.get("message", "Update failed"))
+
+        except Exception as e:
+            self.show_error_dialog(f"Error: {str(e)}")
+
+    def show_success_dialog(self, message):
+        """Show success message"""
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title("Success")
+        dialog.geometry("300x150")
+        dialog.grab_set()
+
+        ctk.CTkLabel(
+            dialog, text=f"✓ {message}", font=ctk.CTkFont(size=16), text_color="#22C55E"
+        ).pack(pady=30)
+
+        ctk.CTkButton(dialog, text="OK", width=100, command=dialog.destroy).pack(
+            pady=10
+        )
+
+    def show_error_dialog(self, message):
+        """Show error message"""
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title("Error")
+        dialog.geometry("350x150")
+        dialog.grab_set()
+
+        ctk.CTkLabel(
+            dialog, text=f"✗ {message}", font=ctk.CTkFont(size=16), text_color="#FF0000"
+        ).pack(pady=30)
+
+        ctk.CTkButton(dialog, text="OK", width=100, command=dialog.destroy).pack(
+            pady=10
+        )
 
     def register_new_student(self):
         """Open form to register new student - only username and password required"""
