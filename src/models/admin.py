@@ -1,11 +1,14 @@
 from models.account import Account, ACCOUNTS_COLLECTION
 from models.student import Student
-
+from models.database import db
 from bson.objectid import ObjectId
 from models.announcement import Announcement
 from models.fee import Fee
 from models.transaction import Transaction
+import datetime
 
+FEES_COLLECTION = db.get_db()['fees']
+TRANSACTIONS_COLLECTION = db.get_db()['transactions']
 
 class Admin(Account):
     def __init__(self, **kwargs):
@@ -61,6 +64,41 @@ class Admin(Account):
 
         print(f"Đã vô hiệu hóa tài khoản cho sinh viên: {student.username}")
         return True
+
+    def hardDeleteStudent(self, student_id):
+        """
+        XÓA VĨNH VIỄN (Hard Delete) một sinh viên và TẤT CẢ dữ liệu liên quan.
+        Hành động này không thể hoàn tác.
+        """
+        print(f"\n--- CẢNH BÁO: Admin {self.username} đang xóa vĩnh viễn SV {student_id} ---")
+        
+        try:
+            # 1. Biến student_id thành ObjectId nếu cần
+            if not isinstance(student_id, ObjectId):
+                student_id = ObjectId(student_id)
+
+            # 2. Xóa tài khoản sinh viên khỏi 'accounts'
+            delete_result = ACCOUNTS_COLLECTION.delete_one(
+                {'_id': student_id, 'role': 'student'}
+            )
+            
+            if delete_result.deleted_count == 0:
+                print(f"Không tìm thấy sinh viên (ID: {student_id}) để xóa.")
+                return False
+                
+            # 3. Xóa dữ liệu liên quan (Cascading Delete)
+            fees_result = FEES_COLLECTION.delete_many({'student_id': student_id})
+            trans_result = TRANSACTIONS_COLLECTION.delete_many({'student_id': student_id})
+            
+            print(f"✅ Đã xóa vĩnh viễn sinh viên: {student_id}")
+            print(f"  - Đã xóa tài khoản: {delete_result.deleted_count}")
+            print(f"  - Đã xóa học phí: {fees_result.deleted_count}")
+            print(f"  - Đã xóa giao dịch: {trans_result.deleted_count}")
+            return True
+            
+        except Exception as e:
+            print(f"Lỗi khi xóa vĩnh viễn: {e}")
+            return False
 
     def postAnnouncement(self, title, content):
         """
@@ -136,5 +174,5 @@ class Admin(Account):
             return False
 
 
-# a = Admin(username = "admin", email = "admin@", password = "admin123")
+# a = Admin(username = "admin", email="hung")
 # a.save()
