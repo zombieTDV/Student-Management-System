@@ -44,7 +44,7 @@ def run_tests():
     print("--- 🚀 Bắt đầu Test Run (Mô hình Kế thừa) ---")
 
     ts = datetime.datetime.now().timestamp()
-    ADMIN_USER = f"test_admin_{ts}"
+    ADMIN_USER = f"admin"
     ADMIN_PASS = "admin_pass_123"
 
     STUDENT_USER = f"test_student_{ts}"
@@ -59,7 +59,7 @@ def run_tests():
         admin_data = {
             "username": ADMIN_USER,
             "password": ADMIN_PASS,
-            "email": f"{ADMIN_USER}@test.com",
+            "email": f"hoangvanhung332006@gmail.com",
         }
         test_admin_obj = Admin(**admin_data)
         test_admin_obj.save()
@@ -86,7 +86,7 @@ def run_tests():
             "password": STUDENT_PASS,
             "email": f"{STUDENT_USER}@test.com",
         }
-        
+
         test_student_obj = authed_admin.createStudent(student_profile, student_account)
         assert test_student_obj is not None and test_student_obj.role == "student"
         print(f"✅ Admin đã tạo Student '{test_student_obj.username}'")
@@ -117,7 +117,7 @@ def run_tests():
         print("\n--- 7. Test: Admin.postAnnouncement() & Student.viewNotification() ---")
         authed_admin.postAnnouncement("Test thông báo", "Nội dung...")
         notifications = authed_student.viewNotification()
-        
+
         assert len(notifications) > 0
         assert isinstance(notifications[0], Announcement) # Kiểm tra đúng loại đối tượng
         assert notifications[0].title == "Test thông báo"
@@ -125,7 +125,7 @@ def run_tests():
 
         # === 8. Test Tích hợp Fee & Transaction ===
         print("\n--- 8. Test: Tích hợp Tài chính (Fee & Transaction) ---")
-        
+
         # 8a. Admin tạo học phí
         print("... 8a. Admin tạo học phí")
         test_fee = authed_admin.createFee(
@@ -136,7 +136,7 @@ def run_tests():
             period="HK1-2025"
         )
         assert test_fee._id is not None
-        
+
         # 8b. Student xem tài chính (trước khi trả)
         print("... 8b. Student xem tài chính (chưa trả)")
         financials_before = authed_student.viewFinancial()
@@ -144,12 +144,12 @@ def run_tests():
         assert isinstance(financials_before['fees'][0], Fee)
         assert financials_before['fees'][0].status == 'pending'
         assert len(financials_before['transactions']) == 0
-        
+
         # 8c. Admin xác nhận thanh toán
         print("... 8c. Admin xác nhận thanh toán")
         success = authed_admin.editPayment(test_fee._id, 'paid', 1500.0)
         assert success is True
-        
+
         # 8d. Student xem tài chính (sau khi trả)
         print("... 8d. Student xem tài chính (đã trả)")
         financials_after = authed_student.viewFinancial()
@@ -166,6 +166,46 @@ def run_tests():
         reloaded_student = Account.find_by_id(authed_student._id)
         assert hasattr(reloaded_student, 'is_active') and reloaded_student.is_active is False
         print("✅ Xóa mềm (vô hiệu hóa tài khoản) thành công.")
+
+        # === 10. Test Xóa vĩnh viễn (Hard Delete) ===
+        print("\n--- 10. Test: Admin.hardDeleteStudent() ---")
+        
+        # Chúng ta sẽ xóa vĩnh viễn sinh viên vừa bị "xóa mềm"
+        student_id_to_delete = authed_student._id
+        
+        success = authed_admin.hardDeleteStudent(student_id_to_delete)
+        assert success is True
+        
+        # Kiểm tra lại xem sinh viên còn tồn tại không
+        reloaded_student_after_hard_delete = Account.find_by_id(student_id_to_delete)
+        assert reloaded_student_after_hard_delete is None
+        
+        # Kiểm tra xem học phí liên quan còn không (không nên còn)
+        fees_after_delete = fees_coll.find_one({'student_id': student_id_to_delete})
+        assert fees_after_delete is None
+        
+        print(f"✅ Xóa vĩnh viễn (ID: {student_id_to_delete}) thành công.")
+        print("✅ Kiểm tra: Tài khoản và dữ liệu liên quan đã biến mất khỏi DB.")
+        # ----------------------------------------
+
+
+        # --- SỬA SỐ THỨ TỰ BƯỚC NÀY ---
+        # === 11. Test Quên mật khẩu === (Trước đây là bước 10)
+        print("\n--- 11. Test: Account.forgot_password() ---")
+        # Lấy email của student (chúng ta dùng email của admin cho test này)
+        admin_email = authed_admin.email 
+        
+        print(f"... Đang giả lập quên mật khẩu cho {admin_email}")
+        print("... (Nếu .env chưa có EMAIL_USER, mật khẩu mới sẽ được in ra console)")
+
+        # Kích hoạt chức năng
+        success_email = Account.forgot_password(admin_email)
+        
+        # ... (phần còn lại của test quên mật khẩu giữ nguyên) ...
+        authed_admin_oldpass = Account.authenticate(ADMIN_USER, ADMIN_PASS)
+        assert authed_admin_oldpass is None
+        print("✅ Mật khẩu cũ (admin_pass_123) đã bị vô hiệu hóa.")
+        print("✅ Chức năng reset mật khẩu đã chạy.")
 
     except Exception as e:
         print(f"\n❌❌❌ TEST THẤT BẠI: {e} ❌❌❌")

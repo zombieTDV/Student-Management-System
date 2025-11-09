@@ -1,5 +1,7 @@
 import customtkinter as ctk
 
+from controllers.auth_controller import AuthController
+
 
 class StudentProfile:
     """
@@ -12,22 +14,24 @@ class StudentProfile:
     def __init__(
         self,
         parent,
-        student_data=None,
-        back_callback=None,
-        edit_callback=None,
+        auth_controller: AuthController,
+        back_callback,
+        edit_callback,
     ):
         self.parent = parent
-        self.student_data = student_data or {
-            "student_id": "2021001",
-            "full_name": "John Doe",
-            "avatar": None,
-            "dob": "01/15/2000",
-            "gender": "Male",
-            "address": "123 Main Street, District 1",
-            "contact": "0901234567",
-            "email": "john.doe@student.edu.vn",
-            "major": "Computer Science",
-            "enrollment_year": "2021",
+        self.auth_controller = auth_controller
+
+        self.student_data = {
+            "student_id": auth_controller.current_account._id,
+            "full_name": auth_controller.current_account.fullName,
+            "gender": auth_controller.current_account.gender,
+            "dob": auth_controller.current_account.dob,
+            "enrollment_year": auth_controller.current_account.createAt,
+            "major": auth_controller.current_account.major,
+            "avatar": auth_controller.current_account.imageURL,
+            "address": auth_controller.current_account.address,
+            "email": auth_controller.current_account.email,
+            "contact": auth_controller.current_account.contact,
         }
 
         self.back_callback = back_callback
@@ -218,33 +222,33 @@ class StudentProfile:
             print("Edit profile clicked - callback not set")
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x900")
-    root.title("Student Profile")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x900")
+#     root.title("Student Profile")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    sample_student = {
-        "student_id": "2021001",
-        "full_name": "Nguyễn Văn An",
-        "avatar": None,
-        "dob": "15/01/2000",
-        "gender": "Male",
-        "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
-        "contact": "0901234567",
-        "email": "nguyen.van.an@student.edu.vn",
-        "major": "Computer Science",
-        "enrollment_year": "2021",
-    }
+#     sample_student = {
+#         "student_id": "2021001",
+#         "full_name": "Nguyễn Văn An",
+#         "avatar": None,
+#         "dob": "15/01/2000",
+#         "gender": "Male",
+#         "address": "123 Nguyễn Huệ, Quận 1, TP.HCM",
+#         "contact": "0901234567",
+#         "email": "nguyen.van.an@student.edu.vn",
+#         "major": "Computer Science",
+#         "enrollment_year": "2021",
+#     }
 
-    def go_back():
-        print("Going back to dashboard...")
+#     def go_back():
+#         print("Going back to dashboard...")
 
-    def edit_profile():
-        print("Opening edit profile page...")
+#     def edit_profile():
+#         print("Opening edit profile page...")
 
-    app = StudentProfile(container, sample_student, go_back, edit_profile)
-    root.mainloop()
+#     app = StudentProfile(container, sample_student, go_back, edit_profile)
+#     root.mainloop()

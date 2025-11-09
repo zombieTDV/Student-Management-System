@@ -172,17 +172,17 @@ class AdminDashboard:
         print("Transaction management clicked")
 
 
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Admin Dashboard")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x800")
+#     root.title("Admin Dashboard")
 
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    def back_to_login():
-        print("Back to login clicked")
+#     def back_to_login():
+#         print("Back to login clicked")
 
-    app = AdminDashboard(container, back_to_login)
-    root.mainloop()
+#     app = AdminDashboard(container, back_to_login)
+#     root.mainloop()

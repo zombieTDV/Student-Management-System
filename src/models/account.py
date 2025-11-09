@@ -3,13 +3,23 @@ from bson.objectid import ObjectId
 import datetime
 import hashlib
 import os  # Cần thiết để tạo salt ngẫu nhiên
-
+import ssl  # Thêm import
+import smtplib  # Thêm import
+from email.message import EmailMessage  # Thêm import
+import secrets  # Thêm import (bảo mật hơn 'random')
+import string  # Thêm import
 # Tải collection một lần
 try:
     ACCOUNTS_COLLECTION = db.get_db()["accounts"]
 except Exception as e:
     print(f"Lỗi khi kết nối tới collection 'accounts': {e}")
     exit(1)
+
+def _generate_random_password(length=6):
+    """Tạo mật khẩu ngẫu nhiên an toàn."""
+    # Bao gồm chữ cái, số, và ký tự đặc biệt
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for i in range(length))
 
 
 def hash_password(password):
@@ -122,6 +132,50 @@ class Account:
             self._id = result.inserted_id
         return self._id
 
+    def _send_password_email(self, new_password):
+            """Gửi email chứa mật khẩu mới cho user (instance method)."""
+            
+            # Lấy credentials email từ .env
+            EMAIL_USER = os.getenv("EMAIL_USER")
+            EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") # Phải là App Password
+            
+            if not EMAIL_USER or not EMAIL_PASSWORD:
+                print("\n*** CẢNH BÁO: EMAIL_USER hoặc EMAIL_PASSWORD chưa được cài đặt trong .env.")
+                print(f"*** Email chưa được gửi tới {self.email}.")
+                print(f"*** Mật khẩu mới (dùng để test): {new_password}\n")
+                return False # Trả về False nếu không gửi được
+
+            # Tạo nội dung email
+            msg = EmailMessage()
+            msg.set_content(f"""
+    Chào {self.username},
+
+    Yêu cầu reset mật khẩu của bạn đã được thực hiện.
+    Mật khẩu mới của bạn là: {new_password}
+
+    Vui lòng đăng nhập và đổi mật khẩu này ngay lập tức.
+
+    Trân trọng,
+    Hệ thống Quản lý Sinh viên
+            """)
+            msg['Subject'] = 'Mật khẩu mới cho Hệ thống QL Sinh viên'
+            msg['From'] = EMAIL_USER
+            msg['To'] = self.email
+
+            try:
+                # Gửi email qua Gmail (dùng SSL)
+                context = ssl.create_default_context()
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
+                    server.login(EMAIL_USER, EMAIL_PASSWORD)
+                    server.send_message(msg)
+                print(f"Đã gửi mật khẩu mới tới {self.email}")
+                return True
+            except Exception as e:
+                print(f"LỖI khi gửi email: {e}")
+                print(f"Mật khẩu mới (KHÔNG GỬI ĐƯỢC): {new_password}")
+                return False
+
+
     @classmethod
     def find_by_username(cls, username):
         """Tìm tài khoản bằng username."""
@@ -141,6 +195,49 @@ class Account:
         except Exception as e:
             print(f"Lỗi khi tìm ID: {e}")
             return None
+
+    @classmethod
+    def find_by_email(cls, email):
+        """Tìm tài khoản bằng email."""
+        account_data = ACCOUNTS_COLLECTION.find_one({'email': email})
+        if account_data:
+            return cls._instantiate_correct_class(account_data)
+        return None
+
+    @classmethod
+    def forgot_password(cls, email):
+        """
+        Tìm tài khoản bằng email, tạo pass mới, lưu, và gửi email.
+        Đây là phương thức Controller sẽ gọi.
+        """
+        # 1. Tìm tài khoản
+        account = cls.find_by_email(email)
+        
+        if not account:
+            print(f"Không tìm thấy tài khoản nào với email: {email}")
+            return False
+        
+        try:
+            # 2. Tạo mật khẩu ngẫu nhiên
+            new_password = _generate_random_password()
+            
+            # 3. Cập nhật mật khẩu (hàm này đã hash và save)
+            account.update_password(new_password)
+            
+            # 4. Gửi email
+            success = account._send_password_email(new_password)
+            
+            if success:
+                print(f"Reset mật khẩu thành công cho {email}.")
+                return True
+            else:
+                print(f"Reset mật khẩu THẤT BẠI (lỗi gửi mail) cho {email}.")
+                return False
+                
+        except Exception as e:
+            print(f"Lỗi trong quá trình forgot_password: {e}")
+            return False
+
 
     @classmethod
     def authenticate(cls, username, password):

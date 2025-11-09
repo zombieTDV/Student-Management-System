@@ -225,37 +225,37 @@ class MakeAnnouncement:
         ).pack(pady=(0, 20))
 
 
-# Example usage (if you want to run this file directly)
-if __name__ == "__main__":
-    # --- Dummy Controller Classes for Testing ---
-    class DummyNotificationsController:
-        def create_announcement(self, author_id, author_name, title, content):
-            print("--- New Announcement ---")
-            print(f"From: {author_name} ({author_id})")
-            print(f"Title: {title}")
-            print(f"Content: {content}")
-            print("-------------------------")
-            # _return False # Use this to test the error case
-            return True
+# # Example usage (if you want to run this file directly)
+# if __name__ == "__main__":
+#     # --- Dummy Controller Classes for Testing ---
+#     class DummyNotificationsController:
+#         def create_announcement(self, author_id, author_name, title, content):
+#             print("--- New Announcement ---")
+#             print(f"From: {author_name} ({author_id})")
+#             print(f"Title: {title}")
+#             print(f"Content: {content}")
+#             print("-------------------------")
+#             # _return False # Use this to test the error case
+#             return True
 
-    class DummyAuthController:
-        def get_current_user(self):
-            return {"id": "admin123", "name": "Dr. Admin"}
+#     class DummyAuthController:
+#         def get_current_user(self):
+#             return {"id": "admin123", "name": "Dr. Admin"}
 
-    # --- Main App Setup ---
+#     # --- Main App Setup ---
 
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Make Announcement Test")
+#     root = ctk.CTk()
+#     root.geometry("1400x800")
+#     root.title("Make Announcement Test")
 
-    def go_back_test():
-        print("Back button clicked!")
+#     def go_back_test():
+#         print("Back button clicked!")
 
-    # Create dummy controllers
-    notif_controller = DummyNotificationsController()
-    auth_controller = DummyAuthController()
+#     # Create dummy controllers
+#     notif_controller = DummyNotificationsController()
+#     auth_controller = DummyAuthController()
 
-    # Create the app
-    app = MakeAnnouncement(root, go_back_test, notif_controller, auth_controller)
+#     # Create the app
+#     app = MakeAnnouncement(root, go_back_test, notif_controller, auth_controller)
 
-    root.mainloop()
+#     root.mainloop()

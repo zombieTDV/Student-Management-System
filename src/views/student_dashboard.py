@@ -1,24 +1,28 @@
 import customtkinter as ctk
 
+from controllers.auth_controller import AuthController
+
 
 class StudentDashboard:
     def __init__(
         self,
         parent,
-        student_data=None,
+        auth_controller: AuthController,
         student_dashboard_view_notifications_callback=None,
         show_financial_summary_callback=None,
         show_payment_callback=None,
+        show_update_info_callback=None,
+        show_more_info_callback=None,
     ):
         self.parent = parent
-        self.student_data = student_data or {
-            "student_id": "2021001",
-            "full_name": "John Doe",
-            "gender": "Male",
-            "dob": "01/15/2000",
-            "enrollment_year": "2021",
-            "major": "Computer Science",
-            "avatar": None,
+        self.student_data = {
+            "student_id": auth_controller.current_account._id,
+            "full_name": auth_controller.current_account.fullName,
+            "gender": auth_controller.current_account.gender,
+            "dob": auth_controller.current_account.dob,
+            "enrollment_year": auth_controller.current_account.createAt,
+            "major": auth_controller.current_account.major,
+            "avatar": auth_controller.current_account.imageURL,
         }
 
         self.student_dashboard_view_notifications_callback = (
@@ -26,6 +30,9 @@ class StudentDashboard:
         )
         self.show_financial_summary_callback = show_financial_summary_callback
         self.show_payment_callback = show_payment_callback
+
+        self.show_more_info_callback = show_more_info_callback
+        self.show_update_info_callback = show_update_info_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -134,6 +141,7 @@ class StudentDashboard:
             )
             field1.pack(fill="x")
             field1.insert(0, value1)
+            field1.configure(state="readonly")
 
             # Right column
             right_col = ctk.CTkFrame(row_frame, fg_color="white")
@@ -151,6 +159,7 @@ class StudentDashboard:
             )
             field2.pack(fill="x")
             field2.insert(0, value2)
+            field2.configure(state="readonly")
 
         # More information link
         more_info = ctk.CTkLabel(
@@ -161,7 +170,7 @@ class StudentDashboard:
             cursor="hand2",
         )
         more_info.pack(anchor="e", padx=40, pady=(0, 20))
-        more_info.bind("<Button-1>", lambda e: self.show_more_info())
+        more_info.bind("<Button-1>", lambda e: self.show_more_info_callback())
 
         # Action buttons section
         buttons_frame = ctk.CTkFrame(main_frame, fg_color="#E8E8E8")
@@ -173,7 +182,7 @@ class StudentDashboard:
                 "text": "Update Info",
                 "icon": "ℹ️",
                 "color": "#2196F3",
-                "command": self.update_info,
+                "command": self.show_update_info_callback,
             },
             {
                 "text": "View Notifications",
@@ -232,39 +241,24 @@ class StudentDashboard:
         darker = tuple(int(c * 0.8) for c in rgb)
         return "#%02x%02x%02x" % darker
 
-    def update_info(self):
-        print("Update Info clicked")
 
-    def view_notifications(self):
-        print("View Notifications clicked")
+# # Example usage
+# if __name__ == "__main__":
+#     root = ctk.CTk()
+#     root.geometry("1400x800")
+#     root.title("Student Dashboard")
 
-    def financial_summary(self):
-        print("Financial Summary clicked")
+#     container = ctk.CTkFrame(root)
+#     container.pack(fill="both", expand=True)
 
-    def payment(self):
-        print("Payment clicked")
+#     sample_student = {
+#         "student_id": "2021001",
+#         "full_name": "John Doe",
+#         "gender": "Male",
+#         "dob": "01/15/2000",
+#         "enrollment_year": "2021",
+#         "major": "Computer Science",
+#     }
 
-    def show_more_info(self):
-        print("More information clicked")
-
-
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Student Dashboard")
-
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
-
-    sample_student = {
-        "student_id": "2021001",
-        "full_name": "John Doe",
-        "gender": "Male",
-        "dob": "01/15/2000",
-        "enrollment_year": "2021",
-        "major": "Computer Science",
-    }
-
-    app = StudentDashboard(container, sample_student)
-    root.mainloop()
+#     app = StudentDashboard(container, sample_student)
+#     root.mainloop()
