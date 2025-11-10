@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from PIL import Image
 
 from controllers.auth_controller import AuthController
 
@@ -120,6 +121,47 @@ class StudentProfile:
             fg_color="#F0F0F0",
             corner_radius=17,
         )
+        avatar_label.pack(fill="both", expand=True, padx=3, pady=3)
+
+        # --- LOAD AND INSERT AVATAR IMAGE (if available) ---
+        # Insert this block right after avatar_label.pack(...)
+        avatar_path = self.student_data.get("avatar")
+        # print(avatar_path)
+        if avatar_path:
+            try:
+                from PIL import ImageOps
+
+                img = Image.open(avatar_path).convert("RGBA")
+
+                # Optional: center-crop to square before resizing (keeps aspect ratio)
+                w, h = img.size
+                side = min(w, h)
+                img = ImageOps.fit(
+                    img,
+                    (side, side),
+                    method=Image.Resampling.LANCZOS,
+                    centering=(0.5, 0.5),
+                )
+
+                # Resize to the frame's display size (match avatar_frame inner size)
+                target_size = (
+                    274,
+                    354,
+                )  # same size used elsewhere; adjust if you change frame size
+                img = img.resize(target_size, Image.Resampling.LANCZOS)
+
+                # Wrap with CTkImage so CustomTkinter can scale it on HiDPI displays
+                self._avatar_ctk_image = ctk.CTkImage(
+                    light_image=img, dark_image=img, size=target_size
+                )
+
+                # Set image on label and remove any placeholder text
+                avatar_label.configure(image=self._avatar_ctk_image, text="")
+
+            except Exception as e:
+                # If loading fails, keep existing placeholder and print the error
+                print("Failed to load avatar image:", e)
+
         avatar_label.pack(fill="both", expand=True, padx=3, pady=3)
 
         # Avatar text if no image

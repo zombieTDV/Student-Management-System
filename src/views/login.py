@@ -200,7 +200,36 @@ class LoginNotificationApp:
             elif login_result["user"].role == "admin":
                 self.admin_dashboard_callback()
         else:
-            print("Invalid credential")
+            # Show popup for invalid credentials
+            self.show_error_popup("Invalid username or password")
+
+    def show_error_popup(self, message):
+        """Show error message"""
+        error_dialog = ctk.CTkToplevel(self.parent)
+        error_dialog.title("Error")
+        error_dialog.geometry("400x250")
+        error_dialog.grab_set()
+        error_dialog.attributes("-topmost", True)
+
+        ctk.CTkLabel(
+            error_dialog,
+            text="⚠️ Validation Error",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#EF4444",
+        ).pack(pady=20, padx=20)
+
+        ctk.CTkLabel(
+            error_dialog,
+            text=message,
+            font=ctk.CTkFont(size=14),
+            text_color="#333333",
+            wraplength=360,
+            justify="left",
+        ).pack(pady=10, padx=20)
+
+        ctk.CTkButton(
+            error_dialog, text="OK", width=120, height=40, command=error_dialog.destroy
+        ).pack(pady=20)
 
     def forgot_password(self):
         self.forgot_password_callback()

@@ -179,19 +179,21 @@ class MainApp:
 
         self.current_frame = UpdateStudentProfile(
             self.container,
-            auth_controller=self.auth_controller,
             back_callback=self.show_student_profile,
+            auth_controller=self.auth_controller,
+            student_controller=self.student_controller,
         )
 
-    def show_update_student_profile_on_studentDashboard(self):
+    def show_update_student_profile_on_studentDashboard(self):  # BUGS
         """Show update student profile via student dashboard"""
         for widget in self.container.winfo_children():
             widget.destroy()
 
         self.current_frame = UpdateStudentProfile(
             self.container,
-            auth_controller=self.auth_controller,
             back_callback=self.show_student_dashboard,
+            auth_controller=self.auth_controller,
+            student_controller=self.student_controller,
         )
 
     def show_student_dashboard_view_notifications(self):

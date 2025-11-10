@@ -1,5 +1,9 @@
 import customtkinter as ctk
 
+from PIL import Image
+import os
+
+
 from controllers.auth_controller import AuthController
 
 
@@ -83,7 +87,7 @@ class StudentDashboard:
         avatar_frame = ctk.CTkFrame(
             left_frame,
             fg_color="white",
-            corner_radius=20,
+            # corner_radius=20,
             border_width=3,
             border_color="#22C55E",
             width=250,
@@ -94,6 +98,23 @@ class StudentDashboard:
 
         avatar_label = ctk.CTkLabel(avatar_frame, text="", fg_color="#F0F0F0")
         avatar_label.pack(fill="both", expand=True, padx=3, pady=3)
+
+        # Load student's avatar if available
+        avatar_path = self.student_data.get("avatar")
+        if avatar_path and os.path.exists(avatar_path):
+            try:
+                img = Image.open(avatar_path).convert("RGBA")
+                img = img.resize((250, 320), Image.Resampling.LANCZOS)
+                self.avatar_ctk_img = ctk.CTkImage(
+                    light_image=img, dark_image=img, size=(250, 320)
+                )
+                avatar_label.configure(image=self.avatar_ctk_img, text="")
+            except Exception as e:
+                print("Failed to load avatar:", e)
+        else:
+            avatar_label.configure(
+                text="No Avatar", font=ctk.CTkFont(size=14, slant="italic")
+            )
 
         # Right side - Info fields
         right_frame = ctk.CTkFrame(content_frame, fg_color="white")

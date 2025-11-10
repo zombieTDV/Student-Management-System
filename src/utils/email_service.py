@@ -1,9 +1,18 @@
-import os
 import ssl
 import smtplib
 from email.message import EmailMessage
 import secrets
 import string
+from bson.objectid import ObjectId
+
+from models.database import db
+
+# Load collection once
+try:
+    CONFIG_COLLECTION = db.get_db()["config"]
+except Exception as e:
+    print(f"Error connecting to 'config' collection: {e}")
+    exit(1)
 
 
 def generate_random_password(length=6):
@@ -19,9 +28,11 @@ def send_password_reset_email(email, username, new_password):
     Returns:
         dict: {"success": bool, "message": str}
     """
-    # Get email credentials from .env
-    EMAIL_USER = os.getenv("EMAIL_USER")
-    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Must be App Password
+    email_id = "691128287956cc411169ab56"
+    email_account_data = CONFIG_COLLECTION.find_one({"_id": ObjectId(email_id)})
+
+    EMAIL_USER = email_account_data.get("email")
+    EMAIL_PASSWORD = email_account_data.get("password")  # Must be App Password
 
     if not EMAIL_USER or not EMAIL_PASSWORD:
         print("\n*** WARNING: EMAIL_USER or EMAIL_PASSWORD not set in .env.")

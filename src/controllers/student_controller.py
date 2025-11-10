@@ -118,16 +118,28 @@ class StudentController:
                 }
 
             # Gọi hàm đăng ký tài khoản sinh viên vào Table Account
-            success = Account.save(student_data)
+            new_student = Student(
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                username=username,
+                password=password,
+                email="",
+            )
+            success = new_student.save()
             if success:
                 return {
-                    'success': True,
-                    'message': f'Student "{username}" registered successfully'
+                    "success": True,
+                    "message": f'Student "{username}" registered successfully',
                 }
             else:
                 return {
-                    'success': False,
-                    'message': 'Cannot register this student account!'
+                    "success": False,
+                    "message": "Cannot register this student account!",
                 }
         except Exception as e:
             return {"success": False, "message": f"Error registering student: {str(e)}"}

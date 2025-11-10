@@ -178,9 +178,6 @@ class Admin(Account):
             return False
 
 
-# a = Admin(username = "admin", email="hung")
-# a.save()
-
-# a = Admin(username = "admin", email = "zombietdv2701@gmail.com", password = "admin123")
+# a = Admin(username = "admin", email = "", password = "admin123")
 
 # a.save()

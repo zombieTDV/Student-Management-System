@@ -36,6 +36,7 @@ class Student(Account):
             "contact",
             "major",
             "imageURL",
+            "email",
         ]
         update_fields = {}
 

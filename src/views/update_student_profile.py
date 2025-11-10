@@ -1,9 +1,10 @@
 import customtkinter as ctk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image
 from datetime import datetime
 
 from controllers.auth_controller import AuthController
+from controllers.student_controller import StudentController
 
 
 class UpdateStudentProfile:
@@ -18,16 +19,20 @@ class UpdateStudentProfile:
     def __init__(
         self,
         parent,
-        auth_controller: AuthController,
         back_callback,
-        update_callback=None,  # Callback để gọi controller
+        auth_controller: AuthController,
+        student_controller: StudentController,  # Callback để gọi controller
     ):
         self.parent = parent
         self.auth_controller = auth_controller
+        self.student_controller = student_controller
+
+        self.back_callback = back_callback
+        self.avatar_path = None  # Store new avatar path
 
         self.student_data = {
             "student_id": auth_controller.current_account._id,
-            "full_name": auth_controller.current_account.fullName,
+            "fullName": auth_controller.current_account.fullName,
             "gender": auth_controller.current_account.gender,
             "dob": auth_controller.current_account.dob,
             "enrollment_year": auth_controller.current_account.createAt,
@@ -37,10 +42,6 @@ class UpdateStudentProfile:
             "email": auth_controller.current_account.email,
             "contact": auth_controller.current_account.contact,
         }
-
-        self.back_callback = back_callback
-        self.update_callback = update_callback
-        self.avatar_path = None  # Store new avatar path
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -124,15 +125,19 @@ class UpdateStudentProfile:
         )
         self.avatar_label.pack(fill="both", expand=True, padx=3, pady=3)
 
-        # Avatar placeholder text
-        if not self.student_data.get("avatar"):
-            self.avatar_placeholder = ctk.CTkLabel(
-                self.avatar_label,
-                text="📷\nNo Photo",
-                font=ctk.CTkFont(family="Arial", size=24),
-                text_color="#999999",
-            )
-            self.avatar_placeholder.place(relx=0.5, rely=0.5, anchor="center")
+        # If student already has an avatar, load it using CTkImage (so CTk can scale it)
+        if self.student_data.get("avatar"):
+            try:
+                existing_img = Image.open(self.student_data["avatar"]).convert("RGBA")
+                existing_img = existing_img.resize((274, 354), Image.Resampling.LANCZOS)
+                # create CTkImage (supports HiDPI scaling)
+                self._avatar_ctk_image = ctk.CTkImage(
+                    light_image=existing_img, dark_image=existing_img, size=(274, 354)
+                )
+                self.avatar_label.configure(image=self._avatar_ctk_image, text="")
+            except Exception as e:
+                # if loading fails, keep placeholder and optionally log
+                print("Failed to load initial avatar:", e)
 
         # Upload button below avatar
         upload_btn = ctk.CTkButton(
@@ -157,17 +162,17 @@ class UpdateStudentProfile:
             fields_section, "Student ID", self.student_data.get("student_id", "")
         )
         # self.create_readonly_field(
-        #     fields_section, "Full Name", self.student_data.get("full_name", "")
+        #     fields_section, "Full Name", self.student_data.get("fullName", "")
         # )
 
         # Editable fields
         self.entries = {}
 
         # Date of Birth
-        self.entries["full_name"] = self.create_editable_field(
+        self.entries["fullName"] = self.create_editable_field(
             fields_section,
-            "full_name*",
-            self.student_data.get("full_name", ""),
+            "fullName*",
+            self.student_data.get("fullName", ""),
             placeholder="Nguyen Van A",
         )
 
@@ -380,14 +385,19 @@ class UpdateStudentProfile:
         if file_path:
             try:
                 # Load and display image
-                image = Image.open(file_path)
+                image = Image.open(file_path).convert("RGBA")
                 # Resize to fit frame
                 image = image.resize((274, 354), Image.Resampling.LANCZOS)
-                photo = ImageTk.PhotoImage(image)
+
+                # Use CTkImage so CustomTkinter can scale on HiDPI displays
+                ctk_image = ctk.CTkImage(
+                    light_image=image, dark_image=image, size=(274, 354)
+                )
 
                 # Update avatar label
-                self.avatar_label.configure(image=photo, text="")
-                self.avatar_label.image = photo  # Keep reference
+                self.avatar_label.configure(image=ctk_image, text="")
+                # Keep reference to avoid garbage collection
+                self._avatar_ctk_image = ctk_image
 
                 # Hide placeholder if exists
                 if hasattr(self, "avatar_placeholder"):
@@ -458,7 +468,7 @@ class UpdateStudentProfile:
 
         # Collect updated data
         updated_data = {
-            "full_name": self.entries["full_name"].get().strip(),
+            "fullName": self.entries["fullName"].get().strip(),
             "dob": self.entries["dob"].get().strip(),
             "gender": self.entries["gender"].get(),
             "address": self.entries["address"].get().strip(),
@@ -472,15 +482,13 @@ class UpdateStudentProfile:
             updated_data["imageURL"] = self.avatar_path
 
         # Call update callback (controller)
-        if self.update_callback:
-            result = self.update_callback(updated_data)
-            if result.get("success"):
-                self.show_success_popup("Profile updated successfully!")
-            else:
-                self.show_error_popup(result.get("message", "Update failed"))
-        else:
-            print("Updated data:", updated_data)
+        result = self.student_controller.update_student_profile(
+            self.auth_controller.current_account, updated_data
+        )
+        if result.get("success"):
             self.show_success_popup("Profile updated successfully!")
+        else:
+            self.show_error_popup(result.get("message", "Update failed"))
 
     def show_success_popup(self, message):
         """Show success message"""
@@ -546,7 +554,7 @@ class UpdateStudentProfile:
 
 #     sample_student = {
 #         "student_id": "2021001",
-#         "full_name": "Nguyễn Văn An",
+#         "fullName": "Nguyễn Văn An",
 #         "avatar": None,
 #         "dob": "15/01/2000",
 #         "gender": "Male",
