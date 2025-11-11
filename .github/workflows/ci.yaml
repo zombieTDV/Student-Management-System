@@ -40,7 +40,13 @@ jobs:
 
       - name: Run flake8
         run: flake8 --config=.flake8 src
-        
+
+      - name: Show black version and diff
+        run: |
+          python -m pip show black || black --version || true
+          # show what would change so you can inspect the diff in the logs
+          black --diff src || true
+          
       - name: Run black check
         run: black --check src
 
