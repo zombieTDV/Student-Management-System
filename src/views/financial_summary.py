@@ -252,7 +252,7 @@ class FinancialSummaryApp:
 
     def format_number(self, num):
         """Format number to string like '3.000.000'"""
-        return f"{num:,}".replace(",", ".")
+        return f"{num: , }".replace(",", ".")
 
 
 # Example usage
