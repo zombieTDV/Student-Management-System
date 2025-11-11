@@ -38,15 +38,6 @@ jobs:
           pip install -r requirements.txt
           pip install flake8 black mypy pytest pytest-html
 
-      - name: Run flake8
-        run: flake8 --config=.flake8 src
-
-      - name: Run black check
-        run: black --check src
-
-      - name: Run mypy
-        run: mypy --ignore-missing-imports src
-
       - name: Run unit tests and generate HTML report
         id: run-tests
         run: |
@@ -89,6 +80,15 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           path: site
+
+      - name: Run flake8
+        run: flake8 --config=.flake8 src
+
+      - name: Run black check
+        run: black --check src
+
+      - name: Run mypy
+        run: mypy --ignore-missing-imports src
 
   publish-pages:
     needs: fast-lint-and-test
