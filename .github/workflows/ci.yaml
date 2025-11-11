@@ -39,8 +39,8 @@ jobs:
           pip install flake8 black mypy pytest pytest-html
 
       - name: Run flake8
-        run: flake8 src
-
+        run: flake8 --config=.flake8 src
+        
       - name: Run black check
         run: black --check src
 
