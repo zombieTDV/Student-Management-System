@@ -104,8 +104,8 @@ class FeeManagement:
             fg_color="#4CAF50",
             hover_color="#45A049",
             text_color="white",
-            width=220,
-            height=80,
+            width=200,
+            height=60,
             corner_radius=15,
             command=self.add_fee_dialog,
         ).pack(side="left", padx=(0, 20))
@@ -117,8 +117,8 @@ class FeeManagement:
             fg_color="#FF7B7B",
             hover_color="#FF6B6B",
             text_color="white",
-            width=220,
-            height=80,
+            width=200,
+            height=60,
             corner_radius=15,
             command=self.mark_fee_paid,
         ).pack(side="left", padx=(0, 20))
@@ -130,11 +130,25 @@ class FeeManagement:
             fg_color="#FF3B3B",
             hover_color="#FF0000",
             text_color="white",
-            width=220,
-            height=80,
+            width=200,
+            height=60,
             corner_radius=15,
             command=self.delete_fee,
         ).pack(side="left", padx=(0, 20))
+
+        refresh_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Refresh",
+            font=ctk.CTkFont(family="Arial", size=18, weight="bold"),
+            fg_color="#22C55E",
+            hover_color="#1e9c4e",
+            text_color="white",
+            width=200,
+            height=60,
+            corner_radius=12,
+            command=self.load_fees(),
+        )
+        refresh_btn.pack(side="left", padx=(0, 20))
 
         self.tree.bind("<Double-1>", self.on_double_click)
 
@@ -286,24 +300,60 @@ class FeeManagement:
         dialog.geometry("500x450")
         dialog.grab_set()
 
+        # fields presented (StudentUsername is a dropdown)
         fields = ["Description", "Amount", "StudentUsername", "DueDate"]
         entries = {}
+
+        # fee_values layout: [FeeID, Description, Amount, StudentID, DueDate, Period, Status]
+        # fee_values[3] is expected to be the StudentID (string)
+        current_student_id_str = str(fee_values[3])
+
+        # Try to find the current student's username (fallback to raw id)
+        current_username = None
+        try:
+            res = self.student_controller.get_student_by_id(current_student_id_str)
+            if res.get("success") and res.get("student"):
+                current_username = res["student"].get("username")
+        except Exception:
+            current_username = None
+
+        # get usernames list (ensure it's a list of strings)
+        usernames_res = self.student_controller.get_all_usernames()
+        usernames = []
+        if isinstance(usernames_res, dict) and "students_usernames" in usernames_res:
+            usernames = usernames_res["students_usernames"] or []
+        elif isinstance(usernames_res, list):
+            usernames = usernames_res
+        # ensure at least one placeholder exists
+        if not usernames:
+            usernames = ["No Students Found"]
+
         for i, field in enumerate(fields):
             frame = ctk.CTkFrame(dialog, fg_color="transparent")
             frame.pack(fill="x", padx=40, pady=5)
             ctk.CTkLabel(frame, text=field + ":", width=100, anchor="w").pack(
                 side="left"
             )
+
             if field == "StudentUsername":
-                usernames = self.student_controller.get_all_usernames()
-                var = ctk.StringVar(value=fee_values[3])
+                # If current_username present and in list, use it; otherwise default to first
+                default_value = (
+                    current_username if current_username in usernames else usernames[0]
+                )
+                var = ctk.StringVar(value=default_value)
                 menu = ctk.CTkOptionMenu(frame, variable=var, values=usernames)
-                menu.pack(side="left", padx=10)
+                menu.pack(side="left", padx=10, fill="x", expand=True)
                 entries[field] = var
             else:
                 entry = ctk.CTkEntry(frame, width=300)
-                entry.insert(0, str(fee_values[i + 1]))
-                entry.pack(side="left", padx=10)
+                # Description -> fee_values[1], Amount -> fee_values[2], DueDate -> fee_values[4]
+                if field == "Description":
+                    entry.insert(0, str(fee_values[1]))
+                elif field == "Amount":
+                    entry.insert(0, str(fee_values[2]))
+                elif field == "DueDate":
+                    entry.insert(0, str(fee_values[4]))
+                entry.pack(side="left", padx=10, fill="x", expand=True)
                 entries[field] = entry
 
         # Period dropdown
@@ -312,6 +362,7 @@ class FeeManagement:
         ctk.CTkLabel(period_frame, text="Period:", width=100, anchor="w").pack(
             side="left"
         )
+
         months = [
             "January",
             "February",
@@ -326,13 +377,25 @@ class FeeManagement:
             "November",
             "December",
         ]
-        month_str, year_str = fee_values[5].split()
+        # safe split of period (fee_values[5]) — if malformed, fallback to first month/year
+        period_raw = fee_values[5] if len(fee_values) > 5 else ""
+        try:
+            month_str, year_str = period_raw.split()
+            if month_str not in months:
+                month_str = months[0]
+        except Exception:
+            month_str = months[0]
+            year_str = "2023"
+
         month_var = ctk.StringVar(value=month_str)
-        year_var = ctk.StringVar(value=year_str)
         ctk.CTkOptionMenu(period_frame, variable=month_var, values=months).pack(
             side="left", padx=(0, 10)
         )
+
         years = [str(y) for y in range(2023, 2031)]
+        if year_str not in years:
+            year_str = years[0]
+        year_var = ctk.StringVar(value=year_str)
         ctk.CTkOptionMenu(period_frame, variable=year_var, values=years).pack(
             side="left", padx=(0, 10)
         )
@@ -352,6 +415,7 @@ class FeeManagement:
         )
 
     def save_fee_edit(self, dialog, tree_item, entries, fee_id, month_var, year_var):
+        # find fee object from controller
         fee = self.fee_controller.find_by_id(fee_id)
         if not fee:
             self.show_error_dialog("Fee not found!")
@@ -359,19 +423,31 @@ class FeeManagement:
         try:
             fee.description = entries["Description"].get().strip()
             fee.amount = float(entries["Amount"].get().strip())
-            fee.student_id = self.student_controller.get_student_id_by_username(
-                entries["StudentUsername"].get()
-            )
+
+            # get username from the StringVar (OptionMenu)
+            selected_username = entries["StudentUsername"].get()
+            # Convert to student id using controller
+            try:
+                student_obj_id = self.student_controller.get_student_id_by_username(
+                    selected_username
+                )
+            except Exception as e:
+                raise ValueError(f"Cannot resolve student username -> id: {e}")
+
+            fee.student_id = student_obj_id
+            # parse due date in DD/MM/YYYY (you use that format across app)
             fee.dueDate = datetime.strptime(
                 entries["DueDate"].get().strip(), "%d/%m/%Y"
             )
             fee.period = f"{month_var.get()} {year_var.get()}"
+
             fee.save()
             self.load_fees()
             dialog.destroy()
             self.show_success_dialog("Fee updated successfully!")
         except Exception as e:
-            self.show_error_dialog(str(e))
+            # provide a helpful message instead of raw tkinter error
+            self.show_error_dialog(f"Failed to update fee: {e}")
 
     # Delete
     def delete_fee(self):

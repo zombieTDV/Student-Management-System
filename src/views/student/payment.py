@@ -1,24 +1,40 @@
 import customtkinter as ctk
-import tkinter as tk  # Import tkinter for BooleanVar
+import tkinter as tk
+from datetime import datetime
+from bson.objectid import ObjectId
+
+# Models
+from models.transaction import Transaction
 
 
+# NOTE: this view expects:
+# - student_controller.get_student_by_id(student_id) -> {"success": True, "student": {...}}
+# - fee_controller.get_fees_by_student(student_id) -> {"success": True, "fees": [Fee, ...]}
+# - Fee objects support ._id, .description, .amount, .student_id, .dueDate, .period, .status, .markPaid(), .save()
 class PaymentApp:
-    def __init__(self, parent, back_callback=None, student_data=None, fee_data=None):
+    def __init__(
+        self, parent, student_id, student_controller, fee_controller, back_callback=None
+    ):
         self.parent = parent
         self.back_callback = back_callback
-        self.student_data = student_data or {}
-        # This is the original list of all available fees
-        self.fee_data = fee_data or []
+        self.student_controller = student_controller
+        self.fee_controller = fee_controller
 
-        # This dict will hold all fee item widgets and their tick status
+        # normalize student_id
+        self.student_id = (
+            ObjectId(student_id)
+            if student_id and not isinstance(student_id, ObjectId)
+            else student_id
+        )
+
+        # hold fee items: fee_id_str -> {"fee": FeeObj, "var": BooleanVar, "frame": Frame}
         self.fee_items = {}
         self.total_fee = 0
 
-        # Set theme
+        # Theme / container (consistent with other views)
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("green")
 
-        # Main container with rounded border
         main_frame = ctk.CTkFrame(
             parent,
             fg_color="white",
@@ -29,11 +45,9 @@ class PaymentApp:
         main_frame.pack(expand=True, fill="both", padx=30, pady=30)
 
         # Header
-        header_frame = ctk.CTkFrame(main_frame, fg_color="white", corner_radius=0)
-        header_frame.pack(fill="x", padx=40, pady=(40, 20))
+        header_frame = ctk.CTkFrame(main_frame, fg_color="white")
+        header_frame.pack(fill="x", padx=60, pady=(40, 20))
 
-        # Back button on the left (using same style as FinancialSummaryApp)
-        # Back arrow button
         back_arrow = ctk.CTkLabel(
             header_frame,
             text="🔙",
@@ -41,51 +55,33 @@ class PaymentApp:
             text_color="#FF7B7B",
             cursor="hand2",
         )
-        back_arrow.pack(side="left", padx=(0, 30))
+        back_arrow.pack(side="left", padx=(0, 20))
         if back_callback:
             back_arrow.bind("<Button-1>", lambda e: back_callback())
 
-        # Title
         title_label = ctk.CTkLabel(
             header_frame,
             text="Payment",
             font=ctk.CTkFont(family="Arial", size=48, weight="bold"),
             text_color="#22C55E",
         )
-        title_label.pack(side="left", padx=20)
+        title_label.pack(side="left")
 
-        # You can add the icon here if you have it as an image file
-        # For example, using a simple label as placeholder:
-        icon_label = ctk.CTkLabel(
-            header_frame,
-            text="💳",  # Placeholder emoji for card icon
-            font=ctk.CTkFont(size=40),
-            text_color="#22C55E",
-        )
-        icon_label.pack(side="left", padx=10)
+        # Student info (attempt to get from controller)
+        student_display = self._fetch_student_info_for_display()
 
-        # --- Student Details ---
-        details_frame = ctk.CTkFrame(main_frame, fg_color="#F3F4F6", corner_radius=10)
-        details_frame.pack(fill="x", padx=40, pady=10)
-
-        student_info = f"""
-Student ID:     {self.student_data.get('id', '...')}
-Full name:      {self.student_data.get('name', '...')}
-Date of birth:  {self.student_data.get('dob', '...')}
-Major:          {self.student_data.get('major', '...')}
-        """
-
+        details_frame = ctk.CTkFrame(main_frame, fg_color="#F9FAFB", corner_radius=10)
+        details_frame.pack(fill="x", padx=60, pady=(20, 10))
         details_label = ctk.CTkLabel(
             details_frame,
-            text=student_info,
-            font=ctk.CTkFont(family="Arial", size=18),
+            text=student_display,
+            font=ctk.CTkFont(family="Arial", size=16),
             text_color="black",
             justify="left",
-            anchor="w",
         )
-        details_label.pack(anchor="w", padx=20, pady=15)
+        details_label.pack(anchor="w", padx=20, pady=12)
 
-        # --- Fee List Container ---
+        # Fee list container
         fee_list_container = ctk.CTkFrame(
             main_frame,
             fg_color="white",
@@ -93,16 +89,15 @@ Major:          {self.student_data.get('major', '...')}
             border_width=2,
             border_color="#B0B0B0",
         )
-        fee_list_container.pack(fill="both", expand=True, padx=40, pady=20)
+        fee_list_container.pack(fill="both", expand=True, padx=60, pady=(10, 20))
 
-        # Title for fee list
-        list_title_label = ctk.CTkLabel(
+        list_title = ctk.CTkLabel(
             fee_list_container,
-            text="Lists of fees (select to pay)",  # Updated title
+            text="Unpaid Fees (select to pay)",
             font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
             text_color="black",
         )
-        list_title_label.pack(anchor="w", padx=20, pady=(10, 5))
+        list_title.pack(anchor="w", padx=20, pady=(12, 6))
 
         # Scrollable frame for fee items
         self.scroll_frame = ctk.CTkScrollableFrame(
@@ -111,169 +106,223 @@ Major:          {self.student_data.get('major', '...')}
             corner_radius=0,
             scrollbar_button_color="#22C55E",
             scrollbar_button_hover_color="#16A34A",
+            height=250,
         )
-        self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=(5, 10))
+        self.scroll_frame.pack(fill="both", expand=True, padx=20, pady=(6, 12))
 
-        # Add fee items
-        for item in self.fee_data:
-            self.add_fee_item(item)
-
-        # --- Total and Pay Button ---
+        # Footer with total and buttons
         footer_frame = ctk.CTkFrame(main_frame, fg_color="white")
-        footer_frame.pack(fill="x", padx=40, pady=(0, 40))
+        footer_frame.pack(fill="x", padx=60, pady=(0, 40))
+
+        # "Select all" checkbox
+        self.select_all_var = tk.BooleanVar(value=True)
+        select_all_cb = ctk.CTkCheckBox(
+            footer_frame,
+            text="Select all",
+            variable=self.select_all_var,
+            command=self._on_select_all_toggle,
+        )
+        select_all_cb.pack(side="left", padx=(0, 20))
 
         self.total_label = ctk.CTkLabel(
             footer_frame,
-            text="Total: 0",  # Initial text
-            font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+            text="Total: 0",
+            font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
             text_color="#EF4444",
         )
-        self.total_label.pack(side="left", padx=20, pady=10)
+        self.total_label.pack(side="left", padx=(10, 20))
 
+        # Pay button
         pay_button = ctk.CTkButton(
             footer_frame,
             text="Pay",
-            font=ctk.CTkFont(family="Arial", size=20, weight="bold"),
+            font=ctk.CTkFont(family="Arial", size=18, weight="bold"),
             fg_color="#22C55E",
             hover_color="#16A34A",
             text_color="white",
-            width=150,
-            height=50,
+            width=200,
+            height=60,
             corner_radius=10,
             command=self.pay_action,
         )
-        pay_button.pack(side="right", padx=20, pady=10)
+        pay_button.pack(side="right")
 
-        # Initial calculation
+        # Load unpaid fees
+        self.load_unpaid_fees()
+
+    def _fetch_student_info_for_display(self):
+        try:
+            res = self.student_controller.get_student_by_id(str(self.student_id))
+            if res.get("success"):
+                s = res["student"]
+                return (
+                    f"Student ID: {s.get('id', '')}\n"
+                    f"Full name:  {s.get('fullName', '')}\n"
+                    f"Date of birth: {s.get('dob', '')}"
+                )
+        except Exception:
+            pass
+        return f"Student ID: {str(self.student_id)}\nFull name: -\nDate of birth: -\n"
+
+    def load_unpaid_fees(self):
+        """Fetch unpaid fees for this student and populate the scroll frame"""
+        # clear existing
+        for child in self.scroll_frame.winfo_children():
+            child.destroy()
+        self.fee_items.clear()
+
+        if not self.fee_controller or not self.student_id:
+            return
+
+        res = self.fee_controller.get_fees_by_student(self.student_id)
+        if not res.get("success"):
+            # show a simple error popup
+            self._show_error(f"Failed to load fees: {res.get('message', 'Unknown')}")
+            return
+
+        fees = res.get("fees", [])
+        # filter unpaid (status not 'paid')
+        unpaid_fees = [f for f in fees if getattr(f, "status", "").lower() != "paid"]
+
+        if not unpaid_fees:
+            empty_label = ctk.CTkLabel(
+                self.scroll_frame,
+                text="No unpaid fees found.",
+                font=ctk.CTkFont(size=16),
+            )
+            empty_label.pack(padx=10, pady=20)
+            self.total_label.configure(text="Total: 0")
+            return
+
+        # create items
+        for fee in unpaid_fees:
+            self._add_fee_item(fee)
+
+        # after adding all, update total
         self.update_total()
 
-    def add_fee_item(self, item_data):
-        """Adds a new fee item row to the scrollable frame with a checkbox"""
-        item_id = item_data.get("id", f"item_{len(self.fee_items)}")
-        name = item_data.get("name", "Unknown Fee")
-        fee_str = item_data.get("fee", "0")
+    def _add_fee_item(self, fee):
+        """Add one fee row (checkbox + info)"""
+        fee_id = str(fee._id)
+        frame = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        frame.pack(fill="x", padx=10, pady=6)
 
-        item_frame = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-        item_frame.pack(fill="x", pady=5)
-
-        # Variable to hold the checkbox state (default to True/ticked)
-        checkbox_var = tk.BooleanVar(value=True)
-
-        item_label_text = f"{name}: {self.format_number(self.parse_number(fee_str))}"
-
-        # Create Checkbox instead of Label and Button
-        checkbox = ctk.CTkCheckBox(
-            item_frame,
-            text=item_label_text,
-            variable=checkbox_var,
-            font=ctk.CTkFont(family="Arial", size=16),
-            text_color="black",
-            command=self.update_total,  # Update total whenever ticked/unticked
+        var = tk.BooleanVar(value=True)
+        label_text = f"{fee.description} — {self._format_number(getattr(fee, 'amount', 0))}  (Due: {getattr(fee, 'dueDate', '')})"
+        cb = ctk.CTkCheckBox(
+            frame, text=label_text, variable=var, command=self.update_total
         )
-        checkbox.pack(side="left", fill="x", expand=True, padx=10)
+        cb.pack(fill="x", padx=8, pady=6)
 
-        # Store the frame, data, and checkbox variable
-        self.fee_items[item_id] = {
-            "frame": item_frame,
-            "data": item_data,
-            "var": checkbox_var,
-        }
+        # store
+        self.fee_items[fee_id] = {"fee": fee, "var": var, "frame": frame}
 
-    # This function is no longer needed
-    # def remove_fee_item(self, item_id):
-    #     ...
+    def _on_select_all_toggle(self):
+        v = self.select_all_var.get()
+        for item in self.fee_items.values():
+            item["var"].set(v)
+        self.update_total()
 
     def update_total(self):
-        """Recalculates and updates the total fee label based on ticked items"""
         total = 0
-        # Iterate over all stored fee items
-        for item_id, item in self.fee_items.items():
-            # Check if the item's checkbox variable is ticked (True)
+        for item in self.fee_items.values():
             if item["var"].get():
-                # If ticked, add its fee to the total
-                total += self.parse_number(item["data"].get("fee", "0"))
-
+                amt = getattr(item["fee"], "amount", 0)
+                try:
+                    total += int(round(float(amt)))
+                except Exception:
+                    total += 0
         self.total_fee = total
-        self.total_label.configure(text=f"Total: {self.format_number(self.total_fee)}")
+        self.total_label.configure(text=f"Total: {self._format_number(self.total_fee)}")
 
     def pay_action(self):
-        """Action to perform when 'Pay' is clicked"""
-        print(f"Attempting to pay: {self.format_number(self.total_fee)}")
+        """Mark selected fees as paid and create transactions (pseudo payment)."""
+        selected = [it for it in self.fee_items.values() if it["var"].get()]
+        if not selected:
+            self._show_error("No fee selected to pay.")
+            return
 
-        # Log which items are being paid for
-        paid_items = []
-        for item_id, item in self.fee_items.items():
-            if item["var"].get():
-                paid_items.append(item["data"].get("name", "Unknown"))
+        total_paid = 0
+        paid_descriptions = []
 
-        print(f"Paying for: {', '.join(paid_items)}")
+        # process each selected fee
+        for item in selected:
+            fee = item["fee"]
+            try:
+                amount = int(round(float(getattr(fee, "amount", 0))))
+            except Exception:
+                amount = 0
 
-        # Show success message
-        success_dialog = ctk.CTkToplevel(self.parent)
-        success_dialog.title("Payment Success")
-        success_dialog.geometry("400x200")
-        success_dialog.grab_set()  # Make modal
+            # mark fee paid (Fee.markPaid does .save())
+            try:
+                fee.markPaid()
+            except Exception:
+                # fallback: attempt to set status and save
+                try:
+                    fee.status = "paid"
+                    fee.save()
+                except Exception as e:
+                    print("Warning: could not mark fee paid:", e)
+
+            # create transaction record
+            try:
+                tx = Transaction(
+                    amount=amount,
+                    method="manual",  # pseudo
+                    student_id=fee.student_id,
+                    fee_id=fee._id,
+                    status="completed",
+                    date=datetime.utcnow(),
+                )
+                tx.save()
+            except Exception as e:
+                print("Warning: transaction save failed:", e)
+
+            total_paid += amount
+            paid_descriptions.append(fee.description)
+
+        # reload unpaid fees list
+        self.load_unpaid_fees()
+
+        # show success dialog
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title("Payment Success")
+        dialog.geometry("420x220")
+        dialog.grab_set()
 
         ctk.CTkLabel(
-            success_dialog,
-            text="✓ Payment Successful!",
+            dialog,
+            text="✓ Payment Completed",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#22C55E",
-        ).pack(pady=30)
-
+        ).pack(pady=(20, 8))
         ctk.CTkLabel(
-            success_dialog,
-            text=f"Amount Paid: {self.format_number(self.total_fee)}",
+            dialog,
+            text=f"Total paid: {self._format_number(total_paid)}",
             font=ctk.CTkFont(size=16),
-        ).pack(pady=10)
+        ).pack(pady=(0, 8))
+        ctk.CTkLabel(
+            dialog, text="Items paid:", font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(6, 0))
+        ctk.CTkLabel(
+            dialog, text=", ".join(paid_descriptions), wraplength=380, justify="left"
+        ).pack(pady=(4, 10))
 
-        ctk.CTkButton(
-            success_dialog,
-            text="OK",
-            width=120,
-            height=40,
-            command=success_dialog.destroy,
+        ctk.CTkButton(dialog, text="OK", width=120, command=dialog.destroy).pack(pady=6)
+
+    def _show_error(self, message):
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title("Error")
+        dialog.geometry("360x140")
+        dialog.grab_set()
+        ctk.CTkLabel(
+            dialog, text=f"✗ {message}", font=ctk.CTkFont(size=14), text_color="#FF0000"
         ).pack(pady=20)
+        ctk.CTkButton(dialog, text="OK", width=100, command=dialog.destroy).pack(pady=6)
 
-    def parse_number(self, num_str):
-        """Parse number string like '3.000.000' to integer"""
+    def _format_number(self, n):
         try:
-            # Added str() cast for safety
-            return int(str(num_str).replace(".", ""))
-        except (ValueError, TypeError):  # <-- This is the specific change
-            # Catch specific errors and return 0 as requested
-            return 0
-
-    def format_number(self, num):
-        return f"{num:,}".replace(",", ".")
-
-
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Payment Screen")
-
-    # Sample data
-    sample_student = {
-        "id": "2021001",
-        "name": "John Doe",
-        "dob": "01/15/2000",
-        "major": "Computer Science",
-    }
-
-    sample_fees = [
-        {"id": "fee1", "name": "Software Engineer", "fee": "3.000.000"},
-        {"id": "fee2", "name": "Fitness", "fee": "2.000.000"},
-        {"id": "fee3", "name": "Library Fine", "fee": "50.000"},
-    ]
-
-    def go_back():
-        print("Back button clicked")
-
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
-
-    # Use the class name from your provided code
-    app = PaymentApp(container, go_back, sample_student, sample_fees)
-    root.mainloop()
+            n = int(round(n))
+        except Exception:
+            n = 0
+        return f"{n:,}".replace(",", ".")

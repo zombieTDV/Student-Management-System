@@ -7,15 +7,19 @@ class AdminDashboard:
         parent,
         back_callback,
         student_management_callback,
+        admin_management_callback,
         make_announcement_callback,
         fee_management_callback,
         transaction_callback,
     ):
         self.parent = parent
         self.back_callback = back_callback
+
         self.student_management_callback = student_management_callback
-        self.make_announcement_callback = make_announcement_callback
+        self.admin_management_callback = admin_management_callback
         self.fee_management_callback = fee_management_callback
+
+        self.make_announcement_callback = make_announcement_callback
         self.transaction_callback = transaction_callback
 
         # Set theme
@@ -161,7 +165,7 @@ class AdminDashboard:
 
     def manage_admin(self):
         """Handle admin management"""
-        print("Admin management clicked")
+        self.admin_management_callback()
 
     def manage_students(self):
         """Handle student management"""
@@ -173,7 +177,7 @@ class AdminDashboard:
 
     def manage_transaction(self):
         """Handle transaction management"""
-        print("Transaction management clicked")
+        self.transaction_callback()
 
 
 # # Example usage

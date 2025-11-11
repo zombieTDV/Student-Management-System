@@ -4,6 +4,8 @@ from controllers.auth_controller import AuthController
 from controllers.notifications_controller import NotificationsController
 from controllers.student_controller import StudentController
 from controllers.fee_controller import FeeController
+from controllers.admin_controller import AdminController
+from controllers.transaction_controller import TransactionController
 
 from views.forgot_password import ForgotPasswordApp
 from views.notification_detail import NotificationDetailApp
@@ -22,6 +24,8 @@ from views.admin.admin_dashboard import AdminDashboard
 from views.admin.student_management import StudentManagement
 from views.admin.make_anoucements import MakeAnnouncement
 from views.admin.fee_management import FeeManagement
+from views.admin.admin_management import AdminManagement
+from views.admin.transaction_management import TransactionManagement
 
 
 from models.database import db
@@ -38,6 +42,8 @@ class MainApp:
         self.notifications_controller = NotificationsController()
         self.student_controller = StudentController()
         self.fee_controller = FeeController()
+        self.admin_controller = AdminController()
+        self.transaction_controller = TransactionController()
 
         # Container for views
         self.container = ctk.CTkFrame(root)
@@ -107,11 +113,24 @@ class MainApp:
 
         self.current_frame = AdminDashboard(
             self.container,
-            self.show_login,
-            self.show_student_management,
-            self.show_make_announcement,
+            back_callback=self.show_login,
+            student_management_callback=self.show_student_management,
+            admin_management_callback=self.show_admin_management,
+            make_announcement_callback=self.show_make_announcement,
             fee_management_callback=self.show_fee_management,
-            transaction_callback=None,
+            transaction_callback=self.show_transaction_management,
+        )
+
+    def show_admin_management(self):
+        """Show admin management view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = AdminManagement(
+            parent=self.container,
+            back_callback=self.show_admin_dashboard,
+            admin_controller=self.admin_controller,
+            auth_controller=self.auth_controller,
         )
 
     def show_student_management(self):
@@ -137,6 +156,17 @@ class MainApp:
             student_controller=self.student_controller,
             auth_controller=self.auth_controller,
             fee_controller=self.fee_controller,
+        )
+
+    def show_transaction_management(self):
+        """Show transactions management view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = TransactionManagement(
+            parent=self.container,
+            back_callback=self.show_admin_dashboard,
+            transaction_controller=self.transaction_controller,
         )
 
     def show_make_announcement(self):
@@ -246,7 +276,11 @@ class MainApp:
             widget.destroy()
 
         self.current_frame = PaymentApp(
-            self.container, self.show_student_dashboard, None, None
+            parent=self.container,
+            student_id=self.auth_controller.current_account._id,
+            student_controller=self.student_controller,
+            fee_controller=self.fee_controller,
+            back_callback=self.show_student_dashboard,
         )
 
     # ======================================================

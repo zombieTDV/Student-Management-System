@@ -146,8 +146,8 @@ class StudentManagement:
             fg_color="#FF7B7B",
             hover_color="#FF6B6B",
             text_color="white",
-            width=220,
-            height=80,
+            width=200,
+            height=60,
             corner_radius=15,
             command=self.register_new_student,
         )
@@ -161,12 +161,26 @@ class StudentManagement:
             fg_color="#4CAF50",
             hover_color="#45A049",
             text_color="white",
-            width=220,
-            height=80,
+            width=200,
+            height=60,
             corner_radius=15,
             command=self.save_changes,
         )
-        save_btn.pack(side="left")
+        save_btn.pack(side="left", padx=(0, 20))
+
+        refresh_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Refresh",
+            font=ctk.CTkFont(family="Arial", size=18, weight="bold"),
+            fg_color="#22C55E",
+            hover_color="#1e9c4e",
+            text_color="white",
+            width=200,
+            height=60,
+            corner_radius=12,
+            command=self.load_students_from_controller(),
+        )
+        refresh_btn.pack(side="left", padx=(0, 20))
 
         # Bind double-click to edit
         self.tree.bind("<Double-1>", self.on_double_click)
@@ -210,88 +224,12 @@ class StudentManagement:
 
         except Exception as e:
             print(f"✗ Error loading students from controller: {e}")
-            # Load sample data as fallback
-            self.load_sample_data()
-
-    def load_sample_data(self):
-        """Load sample student data"""
-        sample_students = [
-            (
-                "2021001",
-                "john_doe",
-                "********",
-                "john@email.com",
-                "John Doe",
-                "01/15/2000",
-                "Male",
-                "123 Main St",
-                "555-0101",
-                "Computer Science",
-                "",
-            ),
-            (
-                "2021002",
-                "jane_smith",
-                "********",
-                "jane@email.com",
-                "Jane Smith",
-                "03/22/2001",
-                "Female",
-                "456 Oak Ave",
-                "555-0102",
-                "Business Admin",
-                "",
-            ),
-            (
-                "2021003",
-                "bob_jones",
-                "********",
-                "bob@email.com",
-                "Bob Jones",
-                "07/10/1999",
-                "Male",
-                "789 Pine Rd",
-                "555-0103",
-                "Engineering",
-                "",
-            ),
-            (
-                "2021004",
-                "alice_wong",
-                "********",
-                "alice@email.com",
-                "Alice Wong",
-                "11/05/2000",
-                "Female",
-                "321 Elm St",
-                "555-0104",
-                "Mathematics",
-                "",
-            ),
-            (
-                "2021005",
-                "charlie_brown",
-                "********",
-                "charlie@email.com",
-                "Charlie Brown",
-                "09/18/2001",
-                "Male",
-                "654 Maple Dr",
-                "555-0105",
-                "Physics",
-                "",
-            ),
-        ]
-
-        for student in sample_students:
-            self.tree.insert("", "end", values=student)
 
     def on_double_click(self, event):
         """Handle double-click on table row"""
         item = self.tree.selection()
         if item:
             values = self.tree.item(item[0])["values"]
-            print(f"Edit student: {values}")
             # Open edit dialog or form
             self.open_edit_dialog(item[0], values)  # Pass item reference too
 
@@ -339,6 +277,9 @@ class StudentManagement:
             if field in ["StudentID", "Username", "Password"]:
                 entry = ctk.CTkEntry(frame, width=350, state="readonly")
                 entry.insert(0, str(value))
+            elif field == "Contact":
+                entry = ctk.CTkEntry(frame, width=350)
+                entry.insert(0, f"0{str(value)}")
             else:
                 entry = ctk.CTkEntry(frame, width=350)
                 entry.insert(0, str(value))
@@ -654,7 +595,6 @@ class StudentManagement:
         success_count = 0
         error_count = 0
         error_messages = []
-        print("ok")
         # Update each student in database
         for student_values in all_students:
             try:
@@ -816,5 +756,5 @@ if __name__ == "__main__":
     container = ctk.CTkFrame(root)
     container.pack(fill="both", expand=True)
 
-    app = StudentManagement(container, None, None)
+    app = StudentManagement(container, None, None, None)
     root.mainloop()
