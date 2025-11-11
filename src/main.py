@@ -4,24 +4,23 @@ from controllers.auth_controller import AuthController
 from controllers.notifications_controller import NotificationsController
 from controllers.student_controller import StudentController
 
+from views.forgot_password import ForgotPasswordApp
+from views.notification_detail import NotificationDetailApp
 from views.login import LoginNotificationApp
 
-from views.student_dashboard import StudentDashboard
-from views.student_profile import StudentProfile
-from views.update_student_profile import UpdateStudentProfile
+from views.student.student_dashboard import StudentDashboard
+from views.student.student_profile import StudentProfile
+from views.student.update_student_profile import UpdateStudentProfile
+from views.student.student_dashboard_view_notifications import (
+    StudentDashboardViewNotification,
+)
+from views.student.financial_summary import FinancialSummaryApp
+from views.student.payment import PaymentApp
 
-from views.student_dashboard_view_notifications import StudentDashboardViewNotification
-from views.financial_summary import FinancialSummaryApp
-from views.payment import PaymentApp
+from views.admin.admin_dashboard import AdminDashboard
+from views.admin.student_management import StudentManagement
+from views.admin.make_anoucements import MakeAnnouncement
 
-from views.admin_dashboard import AdminDashboard
-from views.student_management import StudentManagement
-
-from views.make_anoucements import MakeAnnouncement
-
-from views.forgot_password import ForgotPasswordApp
-
-from views.notification_detail import NotificationDetailApp
 
 from models.database import db
 
