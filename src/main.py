@@ -233,7 +233,11 @@ class MainApp:
             widget.destroy()
 
         self.current_frame = FinancialSummaryApp(
-            self.container, self.show_student_dashboard
+            self.container,
+            student_id=self.auth_controller.current_account._id,
+            student_controller=self.student_controller,
+            fee_controller=self.fee_controller,
+            back_callback=self.show_student_dashboard,
         )
 
     def show_payment(self):

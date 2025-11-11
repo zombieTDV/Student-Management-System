@@ -90,3 +90,14 @@ class FeeController:
             return {"success": True, "message": "Fee deleted successfully"}
         except Exception as e:
             return {"success": False, "message": str(e)}
+
+    def get_fees_by_student(self, student_id):
+        """
+        Returns all fees for a given student _id.
+        Output: {"success": True, "fees": [fee1, fee2, ...]}
+        """
+        try:
+            fees = Fee.find_by_student_id(student_id)  # adjust based on your ORM/DB
+            return {"success": True, "fees": fees}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
