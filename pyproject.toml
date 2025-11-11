@@ -28,8 +28,8 @@ pythonpath = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ["py39"]
-
+target-version = ["py312"]
+skip-string-normalization = true
 
 [tool.isort]
 profile = "black"
