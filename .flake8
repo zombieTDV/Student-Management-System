@@ -1,14 +1,8 @@
 [flake8]
 max-line-length = 100
 
-extend-ignore = E203, E266, E501, W503
+extend-ignore = E203, E266, E501, E231
 
 
 per-file-ignores =
-    src/: E231
     src/views/student_management.py: E713
-    src/utils/email_service.py: E231
-    src/views/student_dashboard.py: E203
-    src/views/payment.py: E231
-    src/main.py: E501
-    src/models/test.py: E501
