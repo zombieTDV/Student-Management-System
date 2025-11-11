@@ -295,12 +295,16 @@ class TransactionManagement:
                     ),
                     "amount": getattr(tx_obj, "amount", None),
                     "method": getattr(tx_obj, "method", None),
-                    "student_id": str(getattr(tx_obj, "student_id", None))
-                    if getattr(tx_obj, "student_id", None) is not None
-                    else None,
-                    "fee_id": str(getattr(tx_obj, "fee_id", None))
-                    if getattr(tx_obj, "fee_id", None) is not None
-                    else None,
+                    "student_id": (
+                        str(getattr(tx_obj, "student_id", None))
+                        if getattr(tx_obj, "student_id", None) is not None
+                        else None
+                    ),
+                    "fee_id": (
+                        str(getattr(tx_obj, "fee_id", None))
+                        if getattr(tx_obj, "fee_id", None) is not None
+                        else None
+                    ),
                     "status": getattr(tx_obj, "status", None),
                     "date": getattr(tx_obj, "date", None)
                     or getattr(tx_obj, "createAt", None),

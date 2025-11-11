@@ -278,9 +278,11 @@ class StudentController:
                         "dob": getattr(student, "dob", "N/A"),
                         "address": getattr(student, "address", "N/A"),
                         "contact": student.contact,
-                        "createAt": student.createAt.strftime("%Y-%m-%d")
-                        if student.createAt
-                        else "N/A",
+                        "createAt": (
+                            student.createAt.strftime("%Y-%m-%d")
+                            if student.createAt
+                            else "N/A"
+                        ),
                         "imageURL": student.imageURL,
                         "gender": student.gender,
                         "major": student.major,
@@ -358,9 +360,11 @@ class StudentController:
                         "dob": getattr(student, "dob", "N/A"),
                         "address": getattr(student, "address", "N/A"),
                         "phoneNumber": getattr(student, "phoneNumber", "N/A"),
-                        "createAt": student.createAt.strftime("%Y-%m-%d")
-                        if student.createAt
-                        else "N/A",
+                        "createAt": (
+                            student.createAt.strftime("%Y-%m-%d")
+                            if student.createAt
+                            else "N/A"
+                        ),
                     },
                 }
             else:

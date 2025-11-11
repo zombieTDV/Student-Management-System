@@ -56,9 +56,11 @@ class TransactionController:
                         "_id": str(doc.get("_id")),
                         "amount": doc.get("amount"),
                         "method": doc.get("method"),
-                        "student_id": str(doc.get("student_id"))
-                        if doc.get("student_id")
-                        else None,
+                        "student_id": (
+                            str(doc.get("student_id"))
+                            if doc.get("student_id")
+                            else None
+                        ),
                         "fee_id": str(doc.get("fee_id")) if doc.get("fee_id") else None,
                         "status": doc.get("status"),
                         "date": doc.get("date"),
