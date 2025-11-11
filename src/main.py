@@ -3,6 +3,7 @@ import customtkinter as ctk
 from controllers.auth_controller import AuthController
 from controllers.notifications_controller import NotificationsController
 from controllers.student_controller import StudentController
+from controllers.fee_controller import FeeController
 
 from views.forgot_password import ForgotPasswordApp
 from views.notification_detail import NotificationDetailApp
@@ -20,6 +21,7 @@ from views.student.payment import PaymentApp
 from views.admin.admin_dashboard import AdminDashboard
 from views.admin.student_management import StudentManagement
 from views.admin.make_anoucements import MakeAnnouncement
+from views.admin.fee_management import FeeManagement
 
 
 from models.database import db
@@ -35,6 +37,7 @@ class MainApp:
         self.auth_controller = AuthController()
         self.notifications_controller = NotificationsController()
         self.student_controller = StudentController()
+        self.fee_controller = FeeController()
 
         # Container for views
         self.container = ctk.CTkFrame(root)
@@ -81,42 +84,6 @@ class MainApp:
             auth_controller=self.auth_controller,
         )
 
-    def show_admin_dashboard(self):
-        """Show admin dashboard view"""
-        for widget in self.container.winfo_children():
-            widget.destroy()
-
-        self.current_frame = AdminDashboard(
-            self.container,
-            self.show_login,
-            self.show_student_management,
-            self.show_make_announcement,
-        )
-
-    def show_student_management(self):
-        """Show student management view"""
-        for widget in self.container.winfo_children():
-            widget.destroy()
-
-        self.current_frame = StudentManagement(
-            self.container,
-            back_callback=self.show_admin_dashboard,
-            student_controller=self.student_controller,
-            auth_controller=self.auth_controller,
-        )
-
-    def show_make_announcement(self):
-        """Show make announcement view"""
-        for widget in self.container.winfo_children():
-            widget.destroy()
-
-        self.current_frame = MakeAnnouncement(
-            self.container,
-            self.show_admin_dashboard,
-            self.notifications_controller,
-            self.auth_controller,
-        )
-
     def handle_password_recovery(self, email):
         """Handle password recovery through controller"""
         result = self.auth_controller.recover_password(email)
@@ -132,18 +99,59 @@ class MainApp:
                 self.container, self.show_login, notification_data
             )
 
-    def show_notification_detail_onDashBoard(self, notification_data):
-        """Show notification detail view"""
-        if notification_data:
-            for widget in self.container.winfo_children():
-                widget.destroy()
+    # =======================================================
+    def show_admin_dashboard(self):
+        """Show admin dashboard view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
 
-            self.current_frame = NotificationDetailApp(
-                self.container,
-                self.show_student_dashboard_view_notifications,
-                notification_data,
-            )
+        self.current_frame = AdminDashboard(
+            self.container,
+            self.show_login,
+            self.show_student_management,
+            self.show_make_announcement,
+            fee_management_callback=self.show_fee_management,
+            transaction_callback=None,
+        )
 
+    def show_student_management(self):
+        """Show student management view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = StudentManagement(
+            self.container,
+            back_callback=self.show_admin_dashboard,
+            student_controller=self.student_controller,
+            auth_controller=self.auth_controller,
+        )
+
+    def show_fee_management(self):
+        """Show student management view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = FeeManagement(
+            self.container,
+            back_callback=self.show_admin_dashboard,
+            student_controller=self.student_controller,
+            auth_controller=self.auth_controller,
+            fee_controller=self.fee_controller,
+        )
+
+    def show_make_announcement(self):
+        """Show make announcement view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = MakeAnnouncement(
+            self.container,
+            self.show_admin_dashboard,
+            self.notifications_controller,
+            self.auth_controller,
+        )
+
+    # =============================================
     def show_student_dashboard(self):
         """Show student dashboard view"""
         for widget in self.container.winfo_children():
@@ -158,6 +166,18 @@ class MainApp:
             show_more_info_callback=self.show_student_profile,
             show_update_info_callback=self.show_update_student_profile_on_studentDashboard,
         )
+
+    def show_notification_detail_onDashBoard(self, notification_data):
+        """Show notification detail view"""
+        if notification_data:
+            for widget in self.container.winfo_children():
+                widget.destroy()
+
+            self.current_frame = NotificationDetailApp(
+                self.container,
+                self.show_student_dashboard_view_notifications,
+                notification_data,
+            )
 
     def show_student_profile(self):
         """Show student profile via more-information"""
@@ -225,6 +245,7 @@ class MainApp:
             self.container, self.show_student_dashboard, None, None
         )
 
+    # ======================================================
     def on_closing(self):
         """Handle application close"""
         db.close()

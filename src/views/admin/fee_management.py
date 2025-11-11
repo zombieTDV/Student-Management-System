@@ -1,9 +1,8 @@
 import customtkinter as ctk
 from tkinter import ttk
-from bson.objectid import ObjectId
-from models.fee import Fee  # Your Fee model
 from controllers.student_controller import StudentController
 from controllers.auth_controller import AuthController
+from controllers.fee_controller import FeeController
 from datetime import datetime
 
 
@@ -14,13 +13,14 @@ class FeeManagement:
         back_callback,
         student_controller: StudentController,
         auth_controller: AuthController,
+        fee_controller: FeeController,
     ):
         self.parent = parent
         self.back_callback = back_callback
         self.student_controller = student_controller
         self.auth_controller = auth_controller
+        self.fee_controller = fee_controller
 
-        # Theme
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("green")
 
@@ -36,7 +36,6 @@ class FeeManagement:
         # Header
         header_frame = ctk.CTkFrame(main_frame, fg_color="white")
         header_frame.pack(anchor="w", padx=60, pady=(40, 30))
-
         back_arrow = ctk.CTkLabel(
             header_frame,
             text="🔙",
@@ -56,7 +55,7 @@ class FeeManagement:
         )
         header_label.pack(side="left")
 
-        # Table container
+        # Table
         table_container = ctk.CTkFrame(
             main_frame,
             fg_color="white",
@@ -65,7 +64,6 @@ class FeeManagement:
             border_color="black",
         )
         table_container.pack(fill="both", expand=True, padx=60, pady=(0, 30))
-
         tree_frame = ctk.CTkFrame(table_container, fg_color="white")
         tree_frame.pack(fill="both", expand=True, padx=2, pady=2)
 
@@ -76,7 +74,7 @@ class FeeManagement:
             "FeeID",
             "Description",
             "Amount",
-            "StudentID",
+            "StudentUsername",
             "DueDate",
             "Period",
             "Status",
@@ -99,7 +97,7 @@ class FeeManagement:
         buttons_frame = ctk.CTkFrame(main_frame, fg_color="white")
         buttons_frame.pack(fill="x", padx=60, pady=(20, 40))
 
-        add_btn = ctk.CTkButton(
+        ctk.CTkButton(
             buttons_frame,
             text="Add Fee",
             font=ctk.CTkFont(size=20, weight="bold"),
@@ -110,10 +108,9 @@ class FeeManagement:
             height=80,
             corner_radius=15,
             command=self.add_fee_dialog,
-        )
-        add_btn.pack(side="left", padx=(0, 20))
+        ).pack(side="left", padx=(0, 20))
 
-        mark_paid_btn = ctk.CTkButton(
+        ctk.CTkButton(
             buttons_frame,
             text="Mark Paid",
             font=ctk.CTkFont(size=20, weight="bold"),
@@ -124,154 +121,156 @@ class FeeManagement:
             height=80,
             corner_radius=15,
             command=self.mark_fee_paid,
-        )
-        mark_paid_btn.pack(side="left", padx=(0, 20))
+        ).pack(side="left", padx=(0, 20))
 
-        save_btn = ctk.CTkButton(
+        ctk.CTkButton(
             buttons_frame,
-            text="Save Changes",
+            text="Delete Fee",
             font=ctk.CTkFont(size=20, weight="bold"),
-            fg_color="#22C55E",
-            hover_color="#1e9c4e",
+            fg_color="#FF3B3B",
+            hover_color="#FF0000",
             text_color="white",
             width=220,
             height=80,
             corner_radius=15,
-            command=self.save_changes,
-        )
-        save_btn.pack(side="left")
+            command=self.delete_fee,
+        ).pack(side="left", padx=(0, 20))
 
         self.tree.bind("<Double-1>", self.on_double_click)
 
         self.load_fees()
 
-    def load_fees(self):
-        """Load all fees from database"""
-        self.tree.delete(*self.tree.get_children())
-        fees = Fee.FEES_COLLECTION.find()
-        for fee_data in fees:
-            fee = Fee(**fee_data)
-            self.tree.insert(
-                "",
-                "end",
-                values=(
-                    str(fee._id),
-                    fee.description,
-                    fee.amount,
-                    str(fee.student_id),
-                    fee.dueDate.strftime("%Y-%m-%d")
-                    if hasattr(fee.dueDate, "strftime")
-                    else fee.dueDate,
-                    fee.period,
-                    fee.status,
-                ),
-            )
+    def _validate_fee_date(self, date_str):
+        try:
+            datetime.strptime(date_str, "%d/%m/%Y")
+            return True
+        except Exception:
+            return False
 
+    # Load fees
+    def load_fees(self):
+        self.tree.delete(*self.tree.get_children())
+        result = self.fee_controller.get_all_fees()
+        if result["success"]:
+            for fee in result["fees"]:
+                student_username = self.student_controller.get_student_by_id(
+                    fee.student_id
+                )["student"]["username"]
+                due_date_str = (
+                    fee.dueDate.strftime("%d/%m/%Y")
+                    if hasattr(fee.dueDate, "strftime")
+                    else fee.dueDate
+                )
+                self.tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        str(fee._id),
+                        fee.description,
+                        fee.amount,
+                        student_username,
+                        due_date_str,
+                        fee.period,
+                        fee.status,
+                    ),
+                )
+
+    # Double-click edit
     def on_double_click(self, event):
-        """Edit fee on double-click"""
         item = self.tree.selection()
         if item:
-            values = self.tree.item(item[0])["values"]
-            self.open_edit_fee_dialog(item[0], values)
-
-    def open_edit_fee_dialog(self, tree_item, fee_values):
-        """Popup to edit fee details"""
-        dialog = ctk.CTkToplevel(self.parent)
-        dialog.title("Edit Fee")
-        dialog.geometry("500x400")
-        dialog.grab_set()
-
-        fields = ["Description", "Amount", "StudentID", "DueDate", "Period", "Status"]
-        entries = {}
-
-        for i, (field, value) in enumerate(zip(fields, fee_values[1:])):
-            frame = ctk.CTkFrame(dialog, fg_color="transparent")
-            frame.pack(fill="x", padx=40, pady=5)
-            ctk.CTkLabel(frame, text=field + ":", width=100, anchor="w").pack(
-                side="left"
-            )
-            entry = ctk.CTkEntry(frame, width=300)
-            entry.insert(0, str(value))
-            entry.pack(side="left", padx=10)
-            entries[field] = entry
-
-        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.pack(pady=20)
-
-        ctk.CTkButton(
-            btn_frame,
-            text="Save",
-            width=120,
-            command=lambda: self.save_fee_edit(
-                dialog, tree_item, entries, fee_values[0]
-            ),
-        ).pack(side="left", padx=10)
-        ctk.CTkButton(btn_frame, text="Cancel", width=120, command=dialog.destroy).pack(
-            side="left", padx=10
-        )
-
-    def save_fee_edit(self, dialog, tree_item, entries, fee_id):
-        fee = Fee.find_by_id(fee_id)
-        if not fee:
-            self.show_error_dialog("Fee not found!")
-            return
-        try:
-            fee.description = entries["Description"].get().strip()
-            fee.amount = float(entries["Amount"].get().strip())
-            fee.student_id = ObjectId(entries["StudentID"].get().strip())
-            fee.dueDate = datetime.strptime(
-                entries["DueDate"].get().strip(), "%Y-%m-%d"
-            )
-            fee.period = entries["Period"].get().strip()
-            fee.status = entries["Status"].get().strip()
-            fee.save()
-
-            self.load_fees()
-            dialog.destroy()
-            self.show_success_dialog("Fee updated successfully!")
-        except Exception as e:
-            self.show_error_dialog(str(e))
+            self.open_edit_fee_dialog(item[0], self.tree.item(item[0])["values"])
 
     def add_fee_dialog(self):
         """Popup to add a new fee"""
         dialog = ctk.CTkToplevel(self.parent)
         dialog.title("Add Fee")
-        dialog.geometry("500x400")
+        dialog.geometry("500x450")
         dialog.grab_set()
 
-        fields = ["Description", "Amount", "StudentID", "DueDate", "Period"]
+        fields = ["Description", "Amount", "StudentUsername", "DueDate"]
         entries = {}
 
+        # Create entry fields
         for field in fields:
             frame = ctk.CTkFrame(dialog, fg_color="transparent")
             frame.pack(fill="x", padx=40, pady=5)
-            ctk.CTkLabel(frame, text=field + ":", width=100, anchor="w").pack(
+
+            ctk.CTkLabel(frame, text=field + ":", width=120, anchor="w").pack(
                 side="left"
             )
-            entry = ctk.CTkEntry(frame, width=300)
-            entry.pack(side="left", padx=10)
-            entries[field] = entry
 
+            if field == "StudentUsername":
+                usernames = self.student_controller.get_all_usernames()[
+                    "students_usernames"
+                ]
+                if not usernames:
+                    usernames = ["No Students Found"]
+                var = ctk.StringVar(value=usernames[0])
+                menu = ctk.CTkOptionMenu(frame, variable=var, values=usernames)
+                menu.pack(side="left", padx=10, fill="x", expand=True)
+                entries[field] = var
+            else:
+                entry = ctk.CTkEntry(frame, width=300)
+                entry.pack(side="left", padx=10, fill="x", expand=True)
+                entries[field] = entry
+
+        # Period dropdown (Month + Year)
+        period_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        period_frame.pack(fill="x", padx=40, pady=10)
+        ctk.CTkLabel(period_frame, text="Period:", width=120, anchor="w").pack(
+            side="left"
+        )
+
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        month_var = ctk.StringVar(value=months[0])
+        month_menu = ctk.CTkOptionMenu(period_frame, variable=month_var, values=months)
+        month_menu.pack(side="left", padx=(0, 10))
+
+        years = [str(y) for y in range(2023, 2031)]
+        year_var = ctk.StringVar(value=years[0])
+        year_menu = ctk.CTkOptionMenu(period_frame, variable=year_var, values=years)
+        year_menu.pack(side="left", padx=(0, 10))
+
+        # Buttons
         btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
         btn_frame.pack(pady=20)
+
         ctk.CTkButton(
             btn_frame,
             text="Add Fee",
             width=120,
-            command=lambda: self.add_fee(dialog, entries),
+            command=lambda: self.add_fee(dialog, entries, month_var, year_var),
         ).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text="Cancel", width=120, command=dialog.destroy).pack(
             side="left", padx=10
         )
 
-    def add_fee(self, dialog, entries):
+    def add_fee(self, dialog, entries, month_var, year_var):
         try:
-            fee = Fee(
+            period = f"{month_var.get()} {year_var.get()}"
+            student_id = self.student_controller.get_student_id_by_username(
+                entries["StudentUsername"].get()
+            )
+            fee = self.fee_controller.create_fee(
                 description=entries["Description"].get().strip(),
                 amount=float(entries["Amount"].get().strip()),
-                student_id=ObjectId(entries["StudentID"].get().strip()),
-                dueDate=datetime.strptime(entries["DueDate"].get().strip(), "%Y-%m-%d"),
-                period=entries["Period"].get().strip(),
+                student_id=student_id,
+                dueDate=datetime.strptime(entries["DueDate"].get().strip(), "%d/%m/%Y"),
+                period=period,
             )
             fee.save()
             self.load_fees()
@@ -280,23 +279,127 @@ class FeeManagement:
         except Exception as e:
             self.show_error_dialog(str(e))
 
+    # Edit Fee dialog
+    def open_edit_fee_dialog(self, tree_item, fee_values):
+        dialog = ctk.CTkToplevel(self.parent)
+        dialog.title("Edit Fee")
+        dialog.geometry("500x450")
+        dialog.grab_set()
+
+        fields = ["Description", "Amount", "StudentUsername", "DueDate"]
+        entries = {}
+        for i, field in enumerate(fields):
+            frame = ctk.CTkFrame(dialog, fg_color="transparent")
+            frame.pack(fill="x", padx=40, pady=5)
+            ctk.CTkLabel(frame, text=field + ":", width=100, anchor="w").pack(
+                side="left"
+            )
+            if field == "StudentUsername":
+                usernames = self.student_controller.get_all_usernames()
+                var = ctk.StringVar(value=fee_values[3])
+                menu = ctk.CTkOptionMenu(frame, variable=var, values=usernames)
+                menu.pack(side="left", padx=10)
+                entries[field] = var
+            else:
+                entry = ctk.CTkEntry(frame, width=300)
+                entry.insert(0, str(fee_values[i + 1]))
+                entry.pack(side="left", padx=10)
+                entries[field] = entry
+
+        # Period dropdown
+        period_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        period_frame.pack(fill="x", padx=40, pady=5)
+        ctk.CTkLabel(period_frame, text="Period:", width=100, anchor="w").pack(
+            side="left"
+        )
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        month_str, year_str = fee_values[5].split()
+        month_var = ctk.StringVar(value=month_str)
+        year_var = ctk.StringVar(value=year_str)
+        ctk.CTkOptionMenu(period_frame, variable=month_var, values=months).pack(
+            side="left", padx=(0, 10)
+        )
+        years = [str(y) for y in range(2023, 2031)]
+        ctk.CTkOptionMenu(period_frame, variable=year_var, values=years).pack(
+            side="left", padx=(0, 10)
+        )
+
+        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        ctk.CTkButton(
+            btn_frame,
+            text="Save",
+            width=120,
+            command=lambda: self.save_fee_edit(
+                dialog, tree_item, entries, fee_values[0], month_var, year_var
+            ),
+        ).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text="Cancel", width=120, command=dialog.destroy).pack(
+            side="left", padx=10
+        )
+
+    def save_fee_edit(self, dialog, tree_item, entries, fee_id, month_var, year_var):
+        fee = self.fee_controller.find_by_id(fee_id)
+        if not fee:
+            self.show_error_dialog("Fee not found!")
+            return
+        try:
+            fee.description = entries["Description"].get().strip()
+            fee.amount = float(entries["Amount"].get().strip())
+            fee.student_id = self.student_controller.get_student_id_by_username(
+                entries["StudentUsername"].get()
+            )
+            fee.dueDate = datetime.strptime(
+                entries["DueDate"].get().strip(), "%d/%m/%Y"
+            )
+            fee.period = f"{month_var.get()} {year_var.get()}"
+            fee.save()
+            self.load_fees()
+            dialog.destroy()
+            self.show_success_dialog("Fee updated successfully!")
+        except Exception as e:
+            self.show_error_dialog(str(e))
+
+    # Delete
+    def delete_fee(self):
+        item = self.tree.selection()
+        if not item:
+            self.show_error_dialog("Select a fee to delete!")
+            return
+        fee_id = self.tree.item(item[0])["values"][0]
+        fee = self.fee_controller.find_by_id(fee_id)
+        if fee:
+            fee.delete()
+            self.load_fees()
+            self.show_success_dialog("Fee deleted successfully!")
+
+    # Mark Paid
     def mark_fee_paid(self):
         item = self.tree.selection()
         if not item:
             self.show_error_dialog("Select a fee to mark as paid!")
             return
         fee_id = self.tree.item(item[0])["values"][0]
-        fee = Fee.find_by_id(fee_id)
+        fee = self.fee_controller.find_by_id(fee_id)
         if fee:
             fee.markPaid()
             self.load_fees()
             self.show_success_dialog("Fee marked as paid!")
 
-    def save_changes(self):
-        """Reload fees to ensure latest data saved"""
-        self.load_fees()
-        self.show_success_dialog("All fees synced successfully!")
-
+    # Dialog helpers
     def show_success_dialog(self, message):
         dialog = ctk.CTkToplevel(self.parent)
         dialog.title("Success")
@@ -312,7 +415,7 @@ class FeeManagement:
     def show_error_dialog(self, message):
         dialog = ctk.CTkToplevel(self.parent)
         dialog.title("Error")
-        dialog.geometry("350x150")
+        dialog.geometry("500x300")
         dialog.grab_set()
         ctk.CTkLabel(
             dialog, text=f"✗ {message}", font=ctk.CTkFont(size=16), text_color="#FF0000"
@@ -320,16 +423,3 @@ class FeeManagement:
         ctk.CTkButton(dialog, text="OK", width=100, command=dialog.destroy).pack(
             pady=10
         )
-
-
-# Example usage
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.geometry("1400x800")
-    root.title("Fee Management")
-    container = ctk.CTkFrame(root)
-    container.pack(fill="both", expand=True)
-
-    # Pass None or your real controllers
-    app = FeeManagement(container, None, None, None)
-    root.mainloop()

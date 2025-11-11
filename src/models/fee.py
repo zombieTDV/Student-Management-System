@@ -42,6 +42,27 @@ class Fee:
             self._id = result.inserted_id
         return self._id
 
+    @classmethod
+    def find_all(cls):
+        """Return all fees in the collection"""
+        try:
+            cursor = FEES_COLLECTION.find()
+            return [cls(**data) for data in cursor]
+        except Exception as e:
+            print(f"Error fetching all fees: {e}")
+            return []
+
+    def delete(self):
+        """Delete this fee from DB"""
+        if not self._id:
+            return False
+        try:
+            FEES_COLLECTION.delete_one({"_id": self._id})
+            return True
+        except Exception as e:
+            print(f"Error deleting fee: {e}")
+            return False
+
     def markPaid(self):
         """Đánh dấu khoản phí này là 'paid' (từ UML)"""
         self.status = "paid"

@@ -2,6 +2,7 @@ from models.student import Student
 from models.account import Account
 import re
 from datetime import datetime
+from bson.objectid import ObjectId
 
 
 class StudentController:
@@ -300,6 +301,39 @@ class StudentController:
                 "count": 0,
             }
 
+    def get_all_usernames(self):
+        """
+        Get all student username from database.
+
+        Returns:
+            dict: {
+                "success": bool,
+                "username": list of student username,
+                "count": int
+            }
+        """
+        try:
+            students = Account.find_all_students()
+
+            # Convert to serializable format
+            students_usernames = []
+            for student in students:
+                students_usernames.append(student.username)
+
+            return {
+                "success": True,
+                "students_usernames": students_usernames,
+                "count": len(students_usernames),
+            }
+        except Exception as e:
+            print(f"Error getting all students username: {e}")
+            return {
+                "success": False,
+                "message": f"Failed to fetch students usesrname: {str(e)}",
+                "students": [],
+                "count": 0,
+            }
+
     def get_student_by_id(self, student_id):
         """
         Get single student by ID.
@@ -400,3 +434,24 @@ class StudentController:
         except Exception as e:
             print(f"Error searching students: {e}")
             return {"success": False, "message": str(e), "students": [], "count": 0}
+
+    def get_student_by_username(self, username):
+        """Return student dict by username, including _id"""
+        students = self.search_students(username)
+        if students["success"] and students["count"] > 0:
+            return {
+                "success": True,
+                "student": {"_id": ObjectId(students["students"][0]["id"])},
+            }
+        return {"success": False, "student": None}
+
+    def get_student_id_by_username(self, username):
+        """
+        Returns the student's ObjectId from the username.
+        Raises ValueError if not found.
+        """
+        result = self.get_student_by_username(username)
+        if result["success"]:
+            return result["student"]["_id"]
+        else:
+            raise ValueError(f"Student '{username}' not found")

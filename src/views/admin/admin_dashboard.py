@@ -8,11 +8,15 @@ class AdminDashboard:
         back_callback,
         student_management_callback,
         make_announcement_callback,
+        fee_management_callback,
+        transaction_callback,
     ):
         self.parent = parent
         self.back_callback = back_callback
         self.student_management_callback = student_management_callback
         self.make_announcement_callback = make_announcement_callback
+        self.fee_management_callback = fee_management_callback
+        self.transaction_callback = transaction_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -165,7 +169,7 @@ class AdminDashboard:
 
     def manage_fee(self):
         """Handle fee management"""
-        print("Fee management clicked")
+        self.fee_management_callback()
 
     def manage_transaction(self):
         """Handle transaction management"""
