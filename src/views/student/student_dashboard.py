@@ -17,14 +17,18 @@ class StudentDashboard:
         show_payment_callback=None,
         show_update_info_callback=None,
         show_more_info_callback=None,
+        logout_callback=None,  # Added logout callback
     ):
         self.parent = parent
+        self.auth_controller = auth_controller
+        self.logout_callback = logout_callback
+
         self.student_data = {
-            "student_id": auth_controller.current_account._id,
+            "student_id": str(auth_controller.current_account._id),
             "full_name": auth_controller.current_account.fullName,
             "gender": auth_controller.current_account.gender,
             "dob": auth_controller.current_account.dob,
-            "enrollment_year": auth_controller.current_account.createAt,
+            "enrollment_year": str(auth_controller.current_account.createAt),
             "major": auth_controller.current_account.major,
             "avatar": auth_controller.current_account.imageURL,
         }
@@ -63,6 +67,7 @@ class StudentDashboard:
         title_frame.pack(fill="x", padx=0, pady=0)
         title_frame.pack_propagate(False)
 
+        # Title label (left side)
         title_label = ctk.CTkLabel(
             title_frame,
             text="Student's Info",
@@ -70,6 +75,22 @@ class StudentDashboard:
             text_color="#22C55E",
         )
         title_label.pack(side="left", padx=30, pady=15)
+
+        # Logout button (right side)
+        if logout_callback:
+            logout_btn = ctk.CTkButton(
+                title_frame,
+                text="Logout",
+                font=ctk.CTkFont(family="Arial", size=16, weight="bold"),
+                fg_color="#EF4444",
+                hover_color="#DC2626",
+                text_color="white",
+                width=120,
+                height=40,
+                corner_radius=10,
+                command=self.logout,
+            )
+            logout_btn.pack(side="right", padx=30, pady=10)
 
         # Separator line
         separator = ctk.CTkFrame(info_section, fg_color="#D0D0D0", height=2)
@@ -161,7 +182,7 @@ class StudentDashboard:
                 fg_color="white",
             )
             field1.pack(fill="x")
-            field1.insert(0, value1)
+            field1.insert(0, str(value1))
             field1.configure(state="readonly")
 
             # Right column
@@ -179,7 +200,7 @@ class StudentDashboard:
                 fg_color="white",
             )
             field2.pack(fill="x")
-            field2.insert(0, value2)
+            field2.insert(0, str(value2))
             field2.configure(state="readonly")
 
         # More information link
@@ -254,6 +275,14 @@ class StudentDashboard:
                 command=btn_data["command"],
             )
             btn.pack(padx=20, pady=(0, 30), fill="x")
+
+    def logout(self):
+        """Handle logout"""
+        if self.logout_callback:
+            # Logout through auth controller
+            self.auth_controller.logout()
+            # Call the callback to return to login
+            self.logout_callback()
 
     def darken_color(self, hex_color):
         """Darken a hex color for hover effect"""

@@ -1,6 +1,5 @@
 import pytest
 import os
-import json
 import time
 from datetime import datetime
 from bson.objectid import ObjectId
@@ -84,7 +83,7 @@ def mock_fee_obj(mocker):
     mock_fee.status = "pending" # Thay vì "Unpaid"
     mock_fee.description = "Mock Fee"
     mock_fee.period = "Mock Period"
-    
+
     mock_fee.save.return_value = True
     mock_fee.delete.return_value = True
     mock_fee.markPaid.return_value = True
@@ -123,6 +122,7 @@ def mock_announcement_obj(mocker):
 # ========== CONTROLLER FIXTURES =========
 # ======================================
 
+
 @pytest.fixture
 def auth_controller(mocker):
     """Mock các dependencies cho AuthController."""
@@ -160,6 +160,7 @@ def admin_controller(mocker):
         "MockAdmin": mock_admin
     }
 
+
 @pytest.fixture
 def fee_controller(mocker):
     """Mock các dependencies cho FeeController."""
@@ -168,6 +169,7 @@ def fee_controller(mocker):
     # mocker.patch('controllers.fee_controller.ObjectId')
     mocker.patch('controllers.fee_controller.FEES_COLLECTION')
     return {"controller": FeeController(), "MockFee": mock_fee}
+
 
 @pytest.fixture
 def financial_controller(mocker):
@@ -185,6 +187,7 @@ def financial_controller(mocker):
         "MockFee": mock_fee,
         "MockTransaction": mock_tx
     }
+
 
 @pytest.fixture
 def payment_controller(mocker):
@@ -205,6 +208,7 @@ def payment_controller(mocker):
         "MockTransaction": mock_tx
     }
 
+
 @pytest.fixture
 def notifications_controller(mocker):
     """Mock các dependencies cho NotificationsController."""
@@ -218,6 +222,7 @@ def notifications_controller(mocker):
     controller.announcement_model = mocker.MagicMock()
     
     return {"controller": controller, "MockAnnouncement": mock_announcement}
+
 
 @pytest.fixture
 def student_controller(mocker):
@@ -235,6 +240,7 @@ def student_controller(mocker):
         "MockStudent": mock_student_class, # Đây là class DummyStudent
         "MockAccount": mock_account
     }
+
 
 @pytest.fixture
 def transaction_controller(mocker):

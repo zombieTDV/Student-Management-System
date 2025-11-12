@@ -30,7 +30,20 @@ pythonpath = ["src"]
 line-length = 88
 target-version = ["py312"]
 skip-string-normalization = true
+exclude = '''
+(
+  /(
+      \.git
+    | \.venv
+    | build
+    | dist
+    | __pycache__
+    | tests
+  )/
+)
+'''
 
 [tool.isort]
 profile = "black"
 line_length = 88
+skip = ["tests", ".venv", "build", "dist", "__pycache__"]
