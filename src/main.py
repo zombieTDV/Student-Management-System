@@ -187,13 +187,14 @@ class MainApp:
             widget.destroy()
 
         self.current_frame = StudentDashboard(
-            self.container,
+            parent=self.container,
             auth_controller=self.auth_controller,
             student_dashboard_view_notifications_callback=self.show_student_dashboard_view_notifications,
             show_financial_summary_callback=self.show_financial_summary,
             show_payment_callback=self.show_payment,
             show_more_info_callback=self.show_student_profile,
             show_update_info_callback=self.show_update_student_profile_on_studentDashboard,
+            logout_callback=self.show_login,
         )
 
     def show_notification_detail_onDashBoard(self, notification_data):
