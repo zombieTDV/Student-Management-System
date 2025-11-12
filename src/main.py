@@ -26,6 +26,7 @@ from views.admin.make_anoucements import MakeAnnouncement
 from views.admin.fee_management import FeeManagement
 from views.admin.admin_management import AdminManagement
 from views.admin.transaction_management import TransactionManagement
+from views.admin.notification_management import NotificationManagement
 
 from models.database import db
 
@@ -118,6 +119,7 @@ class MainApp:
             make_announcement_callback=self.show_make_announcement,
             fee_management_callback=self.show_fee_management,
             transaction_callback=self.show_transaction_management,
+            notification_callback=self.show_notification_management,
         )
 
     def show_admin_management(self):
@@ -178,6 +180,18 @@ class MainApp:
             self.show_admin_dashboard,
             self.notifications_controller,
             self.auth_controller,
+        )
+
+    def show_notification_management(self):
+        """Show notification/announcement view"""
+        for widget in self.container.winfo_children():
+            widget.destroy()
+
+        self.current_frame = NotificationManagement(
+            parent=self.container,
+            back_callback=self.show_admin_dashboard,
+            notifications_controller=self.notifications_controller,
+            auth_controller=self.auth_controller,
         )
 
     # =============================================

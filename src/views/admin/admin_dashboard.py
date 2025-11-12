@@ -11,6 +11,7 @@ class AdminDashboard:
         make_announcement_callback,
         fee_management_callback,
         transaction_callback,
+        notification_callback,
     ):
         self.parent = parent
         self.back_callback = back_callback
@@ -21,6 +22,8 @@ class AdminDashboard:
 
         self.make_announcement_callback = make_announcement_callback
         self.transaction_callback = transaction_callback
+
+        self.notification_callback = notification_callback
 
         # Set theme
         ctk.set_appearance_mode("light")
@@ -89,6 +92,11 @@ class AdminDashboard:
 
         # NOTIFICATION section
         self.create_section_header(left_frame, "NOTIFICATION")
+        self.create_menu_item(left_frame, "Notifications", self.manage_notifications)
+
+        # Notification content area (optional expandable preview)
+        notif_content = ctk.CTkFrame(left_frame, fg_color="white", height=100)
+        notif_content.pack(fill="both", expand=True, padx=2, pady=(0, 2))
 
         # Notification content area (expandable)
         notif_content = ctk.CTkFrame(left_frame, fg_color="white", height=100)
@@ -178,6 +186,11 @@ class AdminDashboard:
     def manage_transaction(self):
         """Handle transaction management"""
         self.transaction_callback()
+
+    def manage_notifications(self):
+        """Open the notifications management view"""
+        if self.notification_callback:
+            self.notification_callback()
 
 
 # # Example usage
