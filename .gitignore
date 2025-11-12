@@ -6,6 +6,7 @@ __pycache__/
 private
 DockerFile
 .env
+.token.json
 
 # Distribution / packaging
 .Python
