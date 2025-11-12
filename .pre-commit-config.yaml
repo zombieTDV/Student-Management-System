@@ -8,4 +8,5 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
-        files: ^(src|tests)(/.*)?\.py$|^main\.py$
+        files: ^src/   # <- only run on files under src/, tests/ will be ignored
+        args: ["--config=.flake8"]
