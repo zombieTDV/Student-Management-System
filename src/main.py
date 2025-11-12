@@ -27,7 +27,6 @@ from views.admin.fee_management import FeeManagement
 from views.admin.admin_management import AdminManagement
 from views.admin.transaction_management import TransactionManagement
 
-
 from models.database import db
 
 

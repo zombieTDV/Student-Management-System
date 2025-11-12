@@ -82,13 +82,16 @@ jobs:
           path: site
 
       - name: Run flake8
-        run: flake8 --config=.flake8 src || true
+        run: flake8 --config=.flake8 src
+        continue-on-error: true
 
       - name: Run black check
-        run: black --check src || true
+        run: black --check src
+        continue-on-error: true
 
       - name: Run mypy
-        run: mypy --ignore-missing-imports src || true
+        run: mypy --ignore-missing-imports src
+        continue-on-error: true
 
   publish-pages:
     needs: fast-lint-and-test
