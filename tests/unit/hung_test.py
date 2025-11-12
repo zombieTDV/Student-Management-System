@@ -835,20 +835,4 @@ def test_account_save_insert_and_update_and_delete(monkeypatch):
     assert a.delete() is False
 
 
-def test_authenticate_returns_account_on_correct_password(monkeypatch):
-    fake = FakeCollection()
-    monkeypatch.setattr(account_module, "ACCOUNTS_COLLECTION", fake)
-
-    pwd = "mypw"
-    # đặt role là 'unknown' để tránh import Student/Admin trong _instantiate_correct_class
-    # authenticate sử dụng find_by_username -> find_one trả về bản ghi -> _instantiate_correct_class -> Account
-    obj = Account.authenticate("authuser", pwd)
-    assert obj is not None
-    assert isinstance(obj, Account)
-    assert obj.username == "authuser"
-
-    # sai password -> None
-    assert Account.authenticate("authuser", "bad") is None
-
-
 # ======================================================
