@@ -14,6 +14,10 @@ jobs:
   fast-lint-and-test:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    env:
+      # Lấy từ Secrets (an toàn)
+      MONGO_URL: ${{ secrets.MONGO_URL }}
+      MONGO_DB: ${{ secrets.MONGO_DB }}  # hoặc set literal bên dưới
     steps:
       - uses: actions/checkout@v4
 
