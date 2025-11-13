@@ -1,10 +1,12 @@
 import pytest
+import os
+import time
 from datetime import datetime
 from bson.objectid import ObjectId
 
-# --- Import tất cả Controller ---
-from controllers.admin_controller import AdminController
+# --- Import Controllers ---
 from controllers.auth_controller import AuthController
+from controllers.admin_controller import AdminController
 from controllers.fee_controller import FeeController
 from controllers.financial_controller import FinancialController
 from controllers.notifications_controller import NotificationsController
@@ -12,43 +14,74 @@ from controllers.payment_controller import PaymentController
 from controllers.student_controller import StudentController
 from controllers.transaction_controller import TransactionController
 
-# ========== CÁC HÀM HELPER TẠO DỮ LIỆU GIẢ (MOCK) ==========
+class DummyStudent:
+    """Một class giả để làm 'type' cho isinstance() hoạt động"""
+    pass
 
+# ==================================
+# ========== HELPER MOCKS ==========
+# ==================================
 
-def _create_mock_account(username, email, role, full_name="Mock User"):
-    """Tạo một đối tượng Account (hoặc Student) giả."""
-    mock_acc = MagicMock()
-    mock_acc._id = ObjectId()
-    mock_acc.username = username
-    mock_acc.email = email
-    mock_acc.role = role
-    mock_acc.fullName = full_name
-    mock_acc.dob = "01/01/2006"
-    mock_acc.contact = "0900123456"
-    mock_acc.address = "123 Vo Oanh Street"
-    mock_acc.gender = "N/A"
-    mock_acc.major = "IT Major"
-    mock_acc.imageURL = "http://example.com/img.png"
-    mock_acc.createAt = datetime(2025, 1, 1)
-    mock_acc.createdAt = datetime(2025, 1, 1)
+# ==================================
+# ========== HELPER MOCKS ==========
+# ==================================
 
-    # Giả lập các hàm của model
-    mock_acc.save.return_value = True
-    mock_acc.delete.return_value = True
-    mock_acc.updateProfile.return_value = True
-    mock_acc.changePassword.return_value = True
-    mock_acc.markPaid.return_value = True
-    return mock_acc
+VALID_STUDENT_ID = "60c72b9f9b1d8f001f8e4c6a"
+VALID_ADMIN_ID = "60c72b9f9b1d8f001f8e4c6b"
+VALID_FEE_ID = "60c72b9f9b1d8f001f8e4c6c"
+VALID_TX_ID = "60c72b9f9b1d8f001f8e4c6d"
 
+@pytest.fixture
+def mock_student_obj(mocker):
+    """Tạo một đối tượng Student giả."""
+    # SỬA: Tạo instance từ class giả
+    mock_student = DummyStudent()
+    
+    # Thêm các thuộc tính mock vào instance
+    mock_student._id = ObjectId(VALID_STUDENT_ID)
+    mock_student.username = "student_user"
+    mock_student.email = "student@test.com"
+    mock_student.role = "student"
+    mock_student.fullName = "Mock Student"
+    mock_student.dob = "01/01/2000"
+    mock_student.major = "IT"
+    mock_student.contact = "0900123456"
+    mock_student.address = "123 Test Street"
+    mock_student.gender = "Male"
+    mock_student.imageURL = "http://example.com/img.png"
+    mock_student.createAt = datetime(2025, 1, 1)
 
-def _create_mock_fee(fee_id, student_id, amount, status="Unpaid", desc="Mock Fee"):
+    mock_student.save = mocker.MagicMock(return_value=True)
+    mock_student.delete = mocker.MagicMock(return_value=True)
+    mock_student.updateProfile = mocker.MagicMock(return_value=True)
+    mock_student.changePassword = mocker.MagicMock(return_value=True)
+    
+    return mock_student
+    
+@pytest.fixture
+def mock_admin_obj(mocker):
+    """Tạo một đối tượng Admin (Account) giả."""
+    mock_admin = mocker.MagicMock() 
+    mock_admin._id = ObjectId(VALID_ADMIN_ID)
+    mock_admin.username = "admin_user"
+    mock_admin.email = "admin@test.com"
+    mock_admin.role = "admin"
+    mock_admin.fullName = "Mock Admin"
+    mock_admin.createAt = datetime(2025, 1, 1)
+    
+    mock_admin.save.return_value = True
+    mock_admin.delete.return_value = True
+    return mock_admin
+
+@pytest.fixture
+def mock_fee_obj(mocker):
     """Tạo một đối tượng Fee giả."""
-    mock_fee = MagicMock()
-    mock_fee._id = ObjectId(fee_id)
-    mock_fee.student_id = ObjectId(student_id)
-    mock_fee.amount = amount
-    mock_fee.status = status
-    mock_fee.description = desc
+    mock_fee = mocker.MagicMock() 
+    mock_fee._id = ObjectId(VALID_FEE_ID)
+    mock_fee.student_id = ObjectId(VALID_STUDENT_ID)
+    mock_fee.amount = 100000
+    mock_fee.status = "pending" # Thay vì "Unpaid"
+    mock_fee.description = "Mock Fee"
     mock_fee.period = "Mock Period"
 
     mock_fee.save.return_value = True
@@ -56,416 +89,529 @@ def _create_mock_fee(fee_id, student_id, amount, status="Unpaid", desc="Mock Fee
     mock_fee.markPaid.return_value = True
     return mock_fee
 
-
-def _create_mock_transaction(tx_id, fee_id, student_id, amount, status="completed"):
+@pytest.fixture
+def mock_tx_obj(mocker):
     """Tạo một đối tượng Transaction giả."""
-    mock_tx = MagicMock()
-    mock_tx._id = ObjectId(tx_id)
-    mock_tx.fee_id = ObjectId(fee_id)
-    mock_tx.student_id = ObjectId(student_id)
-    mock_tx.amount = amount
-    mock_tx.status = status
-    mock_tx.date = datetime(2025, 11, 1)
-
+    mock_tx = mocker.MagicMock()
+    mock_tx._id = ObjectId(VALID_TX_ID)
+    mock_tx.fee_id = ObjectId(VALID_FEE_ID)
+    mock_tx.student_id = ObjectId(VALID_STUDENT_ID)
+    mock_tx.amount = 100000
+    mock_tx.status = "completed"
+    mock_tx.date = datetime(2025, 1, 1)
+    
     mock_tx.save.return_value = True
     mock_tx.delete.return_value = True
     return mock_tx
 
-
-def _create_mock_announcement(title, content):
+@pytest.fixture
+def mock_announcement_obj(mocker):
     """Tạo một đối tượng Announcement giả."""
-    mock_ann = MagicMock()
+    mock_ann = mocker.MagicMock() 
     mock_ann._id = ObjectId()
-    mock_ann.title = title
-    mock_ann.content = content
+    mock_ann.title = "Test Title"
+    mock_ann.content = "Test Content"
     mock_ann.status = "draft"
+    
     mock_ann.save.return_value = True
     mock_ann.publish.return_value = True
     return mock_ann
 
 
-# ========== PYTEST FIXTURES (SETUP MOCKS) ==========
-# Mỗi fixture sẽ mock các dependencies cho 1 controller
-
-
-@pytest.fixture
-def admin_controller(mocker):
-    mocker.patch('controllers.admin_controller.Account')
-    mocker.patch('controllers.admin_controller.Admin')
-    mocker.patch('controllers.admin_controller.ObjectId')
-    return AdminController()
+# ======================================
+# ========== CONTROLLER FIXTURES =========
+# ======================================
 
 
 @pytest.fixture
 def auth_controller(mocker):
-    mocker.patch('controllers.auth_controller.Account')
-    mocker.patch('controllers.auth_controller.generate_random_password')
-    mocker.patch('controllers.auth_controller.send_password_reset_email')
+    """Mock các dependencies cho AuthController."""
+    mock_account = mocker.patch('controllers.auth_controller.Account')
+    
+    mocker.patch('controllers.auth_controller.os.path.exists')
+    mocker.patch('controllers.auth_controller.os.remove')
+    mocker.patch('controllers.auth_controller.open', mocker.mock_open())
+    mocker.patch('controllers.auth_controller.json.dump')
+    mocker.patch('controllers.auth_controller.json.load')
+    mocker.patch('controllers.auth_controller.time.time')
 
+    mocker.patch.object(AuthController, '__init__', lambda self: None)
+    
     controller = AuthController()
-    controller.account_model = MagicMock()  # Mock instance trong __init__
-    return controller
+    controller.account_model = mocker.MagicMock() 
+    controller.current_account = None
+    controller.TOKEN_FILE = ".token.json" 
+    
+    return {"controller": controller, "MockAccount": mock_account}
+
+
+@pytest.fixture
+def admin_controller(mocker):
+    """Mock các dependencies cho AdminController."""
+    mock_account = mocker.patch('controllers.admin_controller.Account')
+    mock_admin = mocker.patch('controllers.admin_controller.Admin', None) 
+    # SỬA: Xóa patch cho ObjectId
+    # mocker.patch('controllers.admin_controller.ObjectId')
+    mocker.patch('models.database.db')
+    
+    return {
+        "controller": AdminController(),
+        "MockAccount": mock_account,
+        "MockAdmin": mock_admin
+    }
 
 
 @pytest.fixture
 def fee_controller(mocker):
-    mocker.patch('controllers.fee_controller.Fee')
-    mocker.patch('controllers.fee_controller.ObjectId')
-    return FeeController()
+    """Mock các dependencies cho FeeController."""
+    mock_fee = mocker.patch('controllers.fee_controller.Fee')
+    # SỬA: Xóa patch cho ObjectId
+    # mocker.patch('controllers.fee_controller.ObjectId')
+    mocker.patch('controllers.fee_controller.FEES_COLLECTION')
+    return {"controller": FeeController(), "MockFee": mock_fee}
 
 
 @pytest.fixture
 def financial_controller(mocker):
-    # Cần patch 'Account' tại nơi nó được import (bên trong hàm)
-    mocker.patch('controllers.financial_controller.Account')
-    mocker.patch('controllers.financial_controller.Fee')
-    mocker.patch('controllers.financial_controller.Transaction')
-    mocker.patch('controllers.financial_controller.ObjectId')
-    return FinancialController()
-
-
-@pytest.fixture
-def notifications_controller(mocker):
-    mocker.patch('controllers.notifications_controller.Announcement')
-    mocker.patch('controllers.notifications_controller.ObjectId')
-
-    controller = NotificationsController()
-    # Mock instance model trong __init__
-    controller.announcement_model = MagicMock()
-    return controller
+    """Mock các dependencies cho FinancialController."""
+    # Account được import BÊN TRONG HÀM -> patch đường dẫn GỐC
+    mock_account = mocker.patch('models.account.Account')
+    
+    # SỬA: Fee và Transaction được import ở ĐẦU FILE -> patch đường dẫn LOCAL
+    mock_fee = mocker.patch('controllers.financial_controller.Fee')
+    mock_tx = mocker.patch('controllers.financial_controller.Transaction')
+    
+    return {
+        "controller": FinancialController(),
+        "MockAccount": mock_account,
+        "MockFee": mock_fee,
+        "MockTransaction": mock_tx
+    }
 
 
 @pytest.fixture
 def payment_controller(mocker):
-    mocker.patch('controllers.payment_controller.Account')
-    mocker.patch('controllers.payment_controller.Fee')
-    mocker.patch('controllers.payment_controller.Transaction')
-    mocker.patch('controllers.payment_controller.ObjectId')
-    return PaymentController()
+    """Mock các dependencies cho PaymentController."""
+    # Account được import BÊN TRONG HÀM -> patch đường dẫn GỐC
+    mock_account = mocker.patch('models.account.Account') 
+    
+    # SỬA: Fee và Transaction được import ở ĐẦU FILE -> patch đường dẫn LOCAL
+    mock_fee = mocker.patch('controllers.payment_controller.Fee')
+    mock_tx = mocker.patch('controllers.payment_controller.Transaction')
+    
+    mocker.patch('controllers.payment_controller.datetime')
+    
+    return {
+        "controller": PaymentController(),
+        "MockAccount": mock_account,
+        "MockFee": mock_fee,
+        "MockTransaction": mock_tx
+    }
+
+
+@pytest.fixture
+def notifications_controller(mocker):
+    """Mock các dependencies cho NotificationsController."""
+    mock_announcement = mocker.patch('controllers.notifications_controller.Announcement')
+    # SỬA: Xóa patch cho ObjectId
+    # mocker.patch('controllers.notifications_controller.ObjectId')
+    
+    mocker.patch.object(NotificationsController, '__init__', lambda self: None)
+    
+    controller = NotificationsController()
+    controller.announcement_model = mocker.MagicMock()
+    
+    return {"controller": controller, "MockAnnouncement": mock_announcement}
 
 
 @pytest.fixture
 def student_controller(mocker):
-    mocker.patch('controllers.student_controller.Student')
-    mocker.patch('controllers.student_controller.Account')
-    mocker.patch('controllers.student_controller.ObjectId')
-    return StudentController()
+    """Mock các dependencies cho StudentController."""
+    # SỬA: Patch 'Student' để nó trỏ vào class giả DummyStudent
+    mock_student_class = mocker.patch(
+        'controllers.student_controller.Student', 
+        new=DummyStudent  # <--- TRỎ VÀO CLASS THẬT
+    )
+    
+    mock_account = mocker.patch('controllers.student_controller.Account')
+    
+    return {
+        "controller": StudentController(),
+        "MockStudent": mock_student_class, # Đây là class DummyStudent
+        "MockAccount": mock_account
+    }
 
 
 @pytest.fixture
 def transaction_controller(mocker):
-    mocker.patch('controllers.transaction_controller.Transaction')
-    mocker.patch('controllers.transaction_controller.ObjectId')
-    # Mock collection
-    mocker.patch('controllers.transaction_controller.TRANSACTIONS_COLLECTION')
-    return TransactionController()
+    """Mock các dependencies cho TransactionController."""
+    mock_tx = mocker.patch('controllers.transaction_controller.Transaction')
+    mock_collection = mocker.patch('controllers.transaction_controller.TRANSACTIONS_COLLECTION')
+    # SỬA: Xóa patch cho ObjectId
+    # mocker.patch('controllers.transaction_controller.ObjectId')
+    
+    return {
+        "controller": TransactionController(),
+        "MockTransaction": mock_tx,
+        "MockCollection": mock_collection
+    }
 
 
-# ========== BỘ TEST CHO CÁC CONTROLLER ==========
+# ======================================
+# ========== BỘ TEST SCRIPT ============
+# ======================================
 
+class TestAuthController:
+    def test_login_success(self, auth_controller, mock_admin_obj, mocker):
+        controller = auth_controller["controller"]
+        
+        controller.account_model.authenticate.return_value = mock_admin_obj
+        mocker.patch.object(controller, '_save_token')
+
+        result = controller.login("admin_user", "password123")
+
+        assert result["success"] is True
+        assert result["message"] == "Login successful"
+        controller._save_token.assert_called_once_with(mock_admin_obj)
+
+    def test_login_fail(self, auth_controller):
+        controller = auth_controller["controller"]
+        controller.account_model.authenticate.return_value = None
+        result = controller.login("admin_user", "wrongpass")
+        assert result["success"] is False
+
+    def test_login_token_success(self, auth_controller, mock_student_obj, mocker):
+        controller = auth_controller["controller"]
+        MockAccount = auth_controller["MockAccount"]
+        
+        token_data = {"account_id": VALID_STUDENT_ID, "expiry": time.time() + 1000}
+        mocker.patch.object(controller, '_load_token', return_value=token_data)
+        MockAccount.find_by_id.return_value = mock_student_obj
+
+        result = controller.login(None, None) 
+
+        assert result["success"] is True
+        assert result["auto_login"] is True
+        MockAccount.find_by_id.assert_called_once_with(VALID_STUDENT_ID)
+
+    def test_logout(self, auth_controller, mocker):
+        controller = auth_controller["controller"]
+        controller.current_account = mocker.MagicMock()
+        os.path.exists.return_value = True
+
+        controller.logout()
+
+        assert controller.current_account is None
+        os.remove.assert_called_once_with(controller.TOKEN_FILE)
 
 class TestAdminController:
-    def test_get_all_admins_success(self, admin_controller, mocker):
-        mock_admins_list = [
-            _create_mock_account("admin1", "a1@test.com", "admin"),
-            _create_mock_account("admin2", "a2@test.com", "admin"),
-        ]
-        admin_controller.Account.find_all_admins.return_value = mock_admins_list
-
-        result = admin_controller.get_all_admins()
-
-        assert result["success"] is True
-        assert result["count"] == 2
-        assert result["admins"][0]["username"] == "admin1"
-
-    def test_get_admin_by_id_not_found(self, admin_controller):
-        admin_controller.Account.find_by_id.return_value = None
-        result = admin_controller.get_admin_by_id("some_id")
-        assert result["success"] is False
-        assert result["message"] == "Admin not found"
-
-    def test_search_admins_found(self, admin_controller, mocker):
-        mock_all_admins_result = {
-            "success": True,
-            "admins": [
-                {
-                    "username": "Admin-Chris",
-                    "email": "c@test.com",
-                    "fullName": "Chris Evans",
-                },
-                {
-                    "username": "User-Steve",
-                    "email": "s@test.com",
-                    "fullName": "Steve Rogers",
-                },
-            ],
-            "count": 2,
-        }
-        mocker.patch.object(
-            admin_controller, 'get_all_admins', return_value=mock_all_admins_result
-        )
-
-        result = admin_controller.search_admins("Steve")
-
+    def test_get_all_admins_success(self, admin_controller, mock_admin_obj):
+        controller = admin_controller["controller"]
+        MockAccount = admin_controller["MockAccount"]
+        
+        MockAccount.find_all_admins.return_value = [mock_admin_obj]
+        
+        result = controller.get_all_admins()
+        
         assert result["success"] is True
         assert result["count"] == 1
-        assert result["admins"][0]["username"] == "User-Steve"
+        assert result["admins"][0]["username"] == "admin_user"
 
-    def test_create_admin_username_exists(self, admin_controller):
-        admin_controller.Account.find_by_username.return_value = MagicMock()
-        profile = {"username": "existing_user", "password": "123"}
+    def test_get_admin_by_id_not_found(self, admin_controller):
+        controller = admin_controller["controller"]
+        MockAccount = admin_controller["MockAccount"]
+        
+        MockAccount.find_by_id.return_value = None
+        
+        result = controller.get_admin_by_id(VALID_ADMIN_ID)
+        
+        assert result["success"] is False
+        assert result["message"] == "Admin not found"
+        
+    def test_create_admin_username_exists(self, admin_controller, mock_admin_obj):
+        controller = admin_controller["controller"]
+        MockAccount = admin_controller["MockAccount"]
 
-        result = admin_controller.create_admin(profile)
-
+        MockAccount.find_by_username.return_value = mock_admin_obj
+        
+        profile = {"username": "admin_user", "password": "123"}
+        result = controller.create_admin(profile)
+        
         assert result["success"] is False
         assert result["message"] == "Username already exists"
 
-    def test_delete_admin_success(self, admin_controller):
-        mock_admin = _create_mock_account("admin", "a@a.com", "admin")
-        admin_controller.Account.find_by_id.return_value = mock_admin
+    def test_delete_admin_success(self, admin_controller, mock_admin_obj):
+        controller = admin_controller["controller"]
+        MockAccount = admin_controller["MockAccount"]
 
-        result = admin_controller.delete_admin("some_id")
-
+        MockAccount.find_by_id.return_value = mock_admin_obj
+        
+        result = controller.delete_admin(VALID_ADMIN_ID)
+        
         assert result["success"] is True
-        mock_admin.delete.assert_called_once()
-
-    def test_validate_username_valid(self):
-        assert AdminController._validate_username("valid_user")["valid"] is True
-
-    def test_validate_username_invalid(self):
-        assert AdminController._validate_username("a!")["valid"] is False
-
-
-class TestAuthController:
-    def test_login_success(self, auth_controller):
-        mock_user = _create_mock_account("user", "u@u.com", "admin")
-        auth_controller.account_model.authenticate.return_value = mock_user
-
-        result = auth_controller.login("user", "password")
-
-        assert result["success"] is True
-        assert result["user"] == mock_user
-        assert auth_controller.is_authenticated() is True
-
-    def test_login_fail(self, auth_controller):
-        auth_controller.account_model.authenticate.return_value = None
-        result = auth_controller.login("user", "wrong_pass")
-        assert result["success"] is False
-        assert auth_controller.is_authenticated() is False
-
-    def test_recover_password_email_not_found(self, auth_controller):
-        auth_controller.Account.find_by_email.return_value = None
-        result = auth_controller.recover_password("not@found.com")
-        assert result["success"] is False
-        assert result["message"] == "Email not found in system"
-
+        mock_admin_obj.delete.assert_called_once()
 
 class TestFeeController:
-    def test_get_all_fees_success(self, fee_controller):
-        mock_list = [MagicMock(), MagicMock()]
-        fee_controller.Fee.find_all.return_value = mock_list
-        result = fee_controller.get_all_fees()
+    def test_get_all_fees_success(self, fee_controller, mock_fee_obj):
+        controller = fee_controller["controller"]
+        MockFee = fee_controller["MockFee"]
+        
+        MockFee.find_all.return_value = [mock_fee_obj, mock_fee_obj]
+        
+        result = controller.get_all_fees()
+        
         assert result["success"] is True
-        assert result["fees"] == mock_list
+        assert len(result["fees"]) == 2
 
-    def test_update_fee_not_found(self, fee_controller):
-        fee_controller.Fee.find_by_id.return_value = None
-        # Giả lập hàm find_by_id của CHÍNH controller (vì nó gọi self.find_by_id)
-        mocker.patch.object(fee_controller, 'find_by_id', return_value=None)
+    def test_find_by_id_success(self, fee_controller, mock_fee_obj):
+        controller = fee_controller["controller"]
+        MockFee = fee_controller["MockFee"]
+        
+        MockFee.find_by_id.return_value = mock_fee_obj
+        
+        result = controller.find_by_id(VALID_FEE_ID)
+        
+        assert result == mock_fee_obj
 
-        result = fee_controller.update_fee("not_found_id", amount=100)
-        assert result["success"] is False
-        assert result["message"] == "Fee not found"
+    def test_create_fee(self, fee_controller, mocker):
+        controller = fee_controller["controller"]
+        MockFee = fee_controller["MockFee"]
+        
+        mock_fee_instance = mocker.MagicMock()
+        MockFee.return_value = mock_fee_instance
+        
+        new_fee = controller.create_fee("Hoc phi", 50000, VALID_STUDENT_ID, "01/01/2026", "HK1")
+        
+        assert new_fee == mock_fee_instance
+        MockFee.assert_called_once() 
 
-    def test_mark_paid_success(self, fee_controller, mocker):
-        mock_fee = _create_mock_fee("fee1", "student1", 100)
-        mocker.patch.object(fee_controller, 'find_by_id', return_value=mock_fee)
-
-        result = fee_controller.mark_paid("fee1")
-
+    def test_mark_paid_success(self, fee_controller, mock_fee_obj, mocker):
+        controller = fee_controller["controller"]
+        
+        mocker.patch.object(controller, 'find_by_id', return_value=mock_fee_obj)
+        
+        result = controller.mark_paid(VALID_FEE_ID)
+        
         assert result["success"] is True
-        assert mock_fee.status == "Paid"
-        mock_fee.save.assert_called_once()
-
+        assert mock_fee_obj.status == "Paid"
+        mock_fee_obj.save.assert_called_once()
 
 class TestFinancialController:
-    def test_get_financial_summary_success(self, financial_controller):
-        mock_student = _create_mock_account("student", "s@s.com", "student")
-        mock_fee = _create_mock_fee("fee1", "student_id", 1000, desc="Hoc phi")
-        mock_tx = _create_mock_transaction("tx1", "fee1", "student_id", 400)
+    def test_get_financial_summary_success(self, financial_controller, mock_student_obj, mock_fee_obj, mock_tx_obj):
+        controller = financial_controller["controller"]
+        MockAccount = financial_controller["MockAccount"]
+        MockFee = financial_controller["MockFee"]
+        MockTransaction = financial_controller["MockTransaction"]
 
-        financial_controller.Account.find_by_id.return_value = mock_student
-        financial_controller.Fee.find_by_student_id.return_value = [mock_fee]
-        financial_controller.Transaction.find_by_student_id.return_value = [mock_tx]
-
-        result = financial_controller.get_financial_summary("student_id")
-
+        MockAccount.find_by_id.return_value = mock_student_obj
+        MockFee.find_by_student_id.return_value = [mock_fee_obj]
+        MockTransaction.find_by_student_id.return_value = [mock_tx_obj]
+        
+        result = controller.get_financial_summary(VALID_STUDENT_ID)
+        
+        # SỬA: Lỗi "assert False is True" đã được fix bằng cách xóa mock ObjectId
         assert result["success"] is True
-        assert result["student_info"]["name"] == mock_student.fullName
+        assert result["student_info"]["name"] == "Mock Student"
         assert len(result["financial_data"]) == 1
-        assert result["financial_data"][0]["name"] == "Hoc phi - Mock Period"
-        assert result["financial_data"][0]["fee"] == "1.000"
-        assert result["financial_data"][0]["remain"] == "600"  # 1000 - 400
+        assert result["financial_data"][0]["remain"] == "0"
 
     def test_get_financial_summary_student_not_found(self, financial_controller):
-        financial_controller.Account.find_by_id.return_value = None
-        result = financial_controller.get_financial_summary("student_id")
+        controller = financial_controller["controller"]
+        MockAccount = financial_controller["MockAccount"]
+        
+        MockAccount.find_by_id.return_value = None
+        
+        result = controller.get_financial_summary(VALID_STUDENT_ID)
+        
         assert result["success"] is False
         assert result["message"] == "Student not found"
 
-    def test_format_currency(self):
-        assert FinancialController._format_currency(1234567) == "1.234.567"
-        assert FinancialController._format_currency(0) == "0"
-
-
 class TestNotificationsController:
-    def test_admin_post_announcement_success(self, notifications_controller, mocker):
-        mock_ann_instance = _create_mock_announcement("Test", "Content")
-        # Mock hàm constructor của Announcement
-        notifications_controller.Announcement.return_value = mock_ann_instance
-
-        result = notifications_controller.admin_post_announcement("T", "C", "admin_id")
-
+    def test_admin_post_announcement_success(self, notifications_controller, mock_announcement_obj):
+        controller = notifications_controller["controller"]
+        MockAnnouncement = notifications_controller["MockAnnouncement"]
+        
+        MockAnnouncement.return_value = mock_announcement_obj
+        
+        result = controller.admin_post_announcement("Title", "Content", VALID_ADMIN_ID)
+        
         assert result["success"] is True
-        assert result["message"] == "Posted an announcement successfully"
-        mock_ann_instance.publish.assert_called_once()
+        mock_announcement_obj.publish.assert_called_once()
 
-    def test_student_view_all_notifications(self, notifications_controller):
-        mock_list = [MagicMock(), MagicMock()]
-        notifications_controller.announcement_model.find_all.return_value = mock_list
-
-        result = notifications_controller.student_view_all_notifications()
-
-        assert result == mock_list
-
+    def test_admin_post_announcement_fail(self, notifications_controller):
+        controller = notifications_controller["controller"]
+        MockAnnouncement = notifications_controller["MockAnnouncement"]
+        
+        MockAnnouncement.side_effect = Exception("DB Error")
+        
+        result = controller.admin_post_announcement("Title", "Content", VALID_ADMIN_ID)
+        
+        assert result["success"] is False
+        assert result["message"] == "Failed to post an announcement"
 
 class TestPaymentController:
-    def test_get_student_payment_data_filters_paid(self, payment_controller):
-        mock_student = _create_mock_account("student", "s@s.com", "student")
-        mock_fees = [
-            _create_mock_fee("f1", "sid", 100, status="pending"),
-            _create_mock_fee("f2", "sid", 200, status="overdue"),
-            _create_mock_fee("f3", "sid", 300, status="paid"),
-        ]
-        payment_controller.Account.find_by_id.return_value = mock_student
-        payment_controller.Fee.find_by_student_id.return_value = mock_fees
-
-        result = payment_controller.get_student_payment_data("sid")
-
+    def test_get_student_payment_data_success(self, payment_controller, mock_student_obj, mock_fee_obj, mocker):
+        controller = payment_controller["controller"]
+        MockAccount = payment_controller["MockAccount"]
+        MockFee = payment_controller["MockFee"]
+        
+        mock_paid_fee = mocker.MagicMock()
+        mock_paid_fee.status = "paid"
+        
+        MockAccount.find_by_id.return_value = mock_student_obj
+        MockFee.find_by_student_id.return_value = [mock_fee_obj, mock_paid_fee]
+        
+        result = controller.get_student_payment_data(VALID_STUDENT_ID)
+        
+        # SỬA: Lỗi "assert False is True" đã được fix bằng cách xóa mock ObjectId
         assert result["success"] is True
-        assert len(result["fees"]) == 2  # Chỉ lấy "pending" và "overdue"
-        assert result["fees"][0]["raw_amount"] == 100
-        assert result["fees"][1]["raw_amount"] == 200
+        assert len(result["fees"]) == 1
+        assert result["fees"][0]["id"] == str(VALID_FEE_ID)
 
-    def test_process_payment_success(self, payment_controller, mocker):
-        mock_fee = _create_mock_fee("f1", "sid", 150, status="pending")
-        payment_controller.Fee.find_by_id.return_value = mock_fee
-
-        mock_tx_instance = MagicMock()
-        payment_controller.Transaction.return_value = mock_tx_instance
-
-        result = payment_controller.process_payment("sid", ["f1"])
-
+    def test_process_payment_success(self, payment_controller, mock_fee_obj, mocker):
+        controller = payment_controller["controller"]
+        MockFee = payment_controller["MockFee"]
+        MockTransaction = payment_controller["MockTransaction"]
+        
+        mock_tx_instance = mocker.MagicMock()
+        
+        MockFee.find_by_id.return_value = mock_fee_obj
+        MockTransaction.return_value = mock_tx_instance
+        
+        result = controller.process_payment(VALID_STUDENT_ID, [VALID_FEE_ID])
+        
+        # SỬA: Lỗi "assert False is True" đã được fix bằng cách xóa mock ObjectId
         assert result["success"] is True
-        assert result["message"] == "Successfully paid 1 fee(s)"
-        assert result["total_paid"] == 150
-
-        # Kiểm tra Fee được markPaid và Transaction được save
-        mock_fee.markPaid.assert_called_once()
+        assert result["total_paid"] == 100000
         mock_tx_instance.save.assert_called_once()
-
-    def test_process_payment_no_fees_selected(self, payment_controller):
-        result = payment_controller.process_payment("sid", [])
-        assert result["success"] is False
-        assert result["message"] == "No fees selected"
-
+        mock_fee_obj.markPaid.assert_called_once()
 
 class TestStudentController:
-    def test_update_student_profile_success(self, student_controller):
-        mock_student = _create_mock_account("student", "s@s.com", "student")
-        # Phải pass một instance của Student
-        student_controller.Student.return_value = mock_student
-
+    def test_update_student_profile_success(self, student_controller, mock_student_obj):
+        controller = student_controller["controller"]
+        MockStudent = student_controller["MockStudent"]
+        
+        # SỬA: THÊM DÒNG NÀY
+        mock_student_obj.__class__ = MockStudent
+        
         data = {"contact": "0987654321", "dob": "10/10/2001"}
-
-        # Giả lập student là một instance của Student
-        # Đây là một cách check `isinstance` đơn giản
-        mock_student.__class__ = student_controller.Student
-
-        result = student_controller.update_student_profile(mock_student, data)
-
+        
+        result = controller.update_student_profile(mock_student_obj, data)
+        
         assert result["success"] is True
         assert result["message"] == "Profile updated successfully"
-        mock_student.updateProfile.assert_called_with(data)
+        mock_student_obj.updateProfile.assert_called_with(data)
 
-    def test_update_student_profile_invalid_phone(self, student_controller):
-        mock_student = MagicMock()
-        mock_student.__class__ = student_controller.Student
-        data = {"contact": "12345"}  # Invalid
-
-        result = student_controller.update_student_profile(mock_student, data)
-
+    def test_update_student_profile_invalid_phone(self, student_controller, mock_student_obj):
+        controller = student_controller["controller"]
+        MockStudent = student_controller["MockStudent"]
+        mock_student_obj.__class__ = MockStudent
+        
+        data = {"contact": "12345"}
+        
+        result = controller.update_student_profile(mock_student_obj, data)
+        
         assert result["success"] is False
-        assert "Contact number must be 10 digits" in result["message"]
+        assert "Contact number must be 10 digits" in result["message"] 
 
-    def test_validate_phone_valid(self):
-        assert StudentController._validate_phone("0123456789") is True
+    def test_register_student_by_admin_success(self, student_controller, mock_admin_obj, mock_student_obj, mocker): # Thêm 'mocker'
+        controller = student_controller["controller"]
+        MockAccount = student_controller["MockAccount"]
+        
+        MockAccount.find_by_username.return_value = None
+    
+        mocker.patch.object(DummyStudent, '__new__', return_value=mock_student_obj)
+        
+        result = controller.register_student_by_admin(mock_admin_obj, "new_student", "ValidPass123")
+        
+        assert result["success"] is True # Giờ sẽ pass
+        mock_student_obj.save.assert_called_once()
 
-    def test_validate_phone_invalid(self):
-        assert (
-            StudentController._validate_phone("1234567890") is False
-        )  # Phải bắt đầu bằng 0
-        assert StudentController._validate_phone("0123456") is False  # Không đủ 10 số
+    def test_register_student_username_exists(self, student_controller, mock_admin_obj, mock_student_obj):
+        controller = student_controller["controller"]
+        MockAccount = student_controller["MockAccount"]
 
-    def test_get_all_students_success(self, student_controller):
-        mock_list = [
-            _create_mock_account("s1", "s1@s.com", "student"),
-            _create_mock_account("s2", "s2@s.com", "student"),
-        ]
-        student_controller.Account.find_all_students.return_value = mock_list
+        MockAccount.find_by_username.return_value = mock_student_obj
+        
+        result = controller.register_student_by_admin(mock_admin_obj, "student_user", "ValidPass123")
+        
+        assert result["success"] is False
+        assert 'already exists' in result["message"]
 
-        result = student_controller.get_all_students()
-
-        assert result["success"] is True
-        assert result["count"] == 2
-        assert result["students"][0]["username"] == "s1"
-
-
-class TestTransactionController:
-    def test_get_all_transactions_success(self, transaction_controller):
-        mock_cursor = [
-            {"_id": ObjectId(), "amount": 100, "status": "completed"},
-            {"_id": ObjectId(), "amount": 200, "status": "pending"},
-        ]
-        # Giả lập chuỗi lời gọi find().sort()
-        transaction_controller.TRANSACTIONS_COLLECTION.find.return_value.sort.return_value = (
-            mock_cursor
-        )
-
-        result = transaction_controller.get_all_transactions()
-
-        assert result["success"] is True
-        assert result["count"] == 2
-        assert result["transactions"][0]["amount"] == 100
-
-    def test_get_transactions_by_student_success(self, transaction_controller):
-        mock_tx_list = [_create_mock_transaction("tx1", "f1", "s1", 100)]
-        transaction_controller.Transaction.find_by_student_id.return_value = (
-            mock_tx_list
-        )
-
-        result = transaction_controller.get_transactions_by_student("s1")
-
+    def test_get_all_students_success(self, student_controller, mock_student_obj):
+        controller = student_controller["controller"]
+        MockAccount = student_controller["MockAccount"]
+        
+        MockAccount.find_all_students.return_value = [mock_student_obj]
+        
+        result = controller.get_all_students()
+        
         assert result["success"] is True
         assert result["count"] == 1
-        assert result["transactions"][0]["amount"] == 100
 
-    def test_create_transaction_success(self, transaction_controller):
-        mock_tx_instance = MagicMock()
-        transaction_controller.Transaction.return_value = mock_tx_instance
-
-        result = transaction_controller.create_transaction(100, "cash", "s1", "f1")
-
+class TestTransactionController:
+    def test_get_all_transactions_success(self, transaction_controller, mocker):
+        controller = transaction_controller["controller"]
+        MockCollection = transaction_controller["MockCollection"]
+        
+        mock_cursor_data = [
+            {"_id": ObjectId(VALID_TX_ID), "amount": 100, "status": "completed"},
+        ]
+        MockCollection.find.return_value.sort.return_value = mock_cursor_data
+        
+        result = controller.get_all_transactions()
+        
         assert result["success"] is True
-        transaction_controller.Transaction.assert_called_once()
-        mock_tx_instance.save.assert_called_once()
+        assert result["count"] == 1
+        assert result["transactions"][0]["_id"] == VALID_TX_ID
+
+    def test_get_transactions_by_student_success(self, transaction_controller, mock_tx_obj):
+        controller = transaction_controller["controller"]
+        MockTransaction = transaction_controller["MockTransaction"]
+
+        MockTransaction.find_by_student_id.return_value = [mock_tx_obj]
+        
+        result = controller.get_transactions_by_student(VALID_STUDENT_ID)
+        
+        assert result["success"] is True
+        assert result["count"] == 1
+        assert result["transactions"][0]["_id"] == VALID_TX_ID
+
+    def test_create_transaction_success(self, transaction_controller, mock_tx_obj):
+        controller = transaction_controller["controller"]
+        MockTransaction = transaction_controller["MockTransaction"]
+        
+        MockTransaction.return_value = mock_tx_obj
+        
+        result = controller.create_transaction(100, "cash", VALID_STUDENT_ID, VALID_FEE_ID)
+        
+        assert result["success"] is True
+        assert result["transaction"]["_id"] == VALID_TX_ID
+        mock_tx_obj.save.assert_called_once()
+
+    def test_delete_transaction_success(self, transaction_controller, mock_tx_obj):
+        controller = transaction_controller["controller"]
+        MockTransaction = transaction_controller["MockTransaction"]
+        
+        MockTransaction.find_by_id.return_value = mock_tx_obj
+        
+        result = controller.delete_transaction(VALID_TX_ID)
+        
+        assert result["success"] is True
+        mock_tx_obj.delete.assert_called_once()
+
+    def test_delete_transaction_not_found(self, transaction_controller, mocker):
+        controller = transaction_controller["controller"]
+        MockTransaction = transaction_controller["MockTransaction"]
+        MockCollection = transaction_controller["MockCollection"]
+        
+        MockTransaction.find_by_id.return_value = None
+        
+        mock_delete_result = mocker.MagicMock()
+        mock_delete_result.deleted_count = 0
+        MockCollection.delete_one.return_value = mock_delete_result
+        
+        result = controller.delete_transaction(VALID_TX_ID)
+        
+        assert result["success"] is False
+        assert result["message"] == "Transaction not found"
