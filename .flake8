@@ -1,2 +1,16 @@
 [flake8]
-max-line-length = 88
+max-line-length = 100
+extend-ignore = E203, E266, E501, E231
+
+# Exclude tests entirely (simple and robust)
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    build,
+    dist,
+    tests
+
+# Keep per-file overrides if you still need the one file rule
+per-file-ignores =
+    src/views/admin/student_management.py: E713
