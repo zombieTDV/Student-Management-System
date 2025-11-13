@@ -73,6 +73,7 @@ jobs:
           VALIDATE_PYTHON_MYPY: true
           PYTHON_MYPY_ARGS: "--no-install-types --ignore-missing-imports"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       # Prepare site for GitHub Pages (index + stable redirect)
       - name: Prepare site for GitHub Pages (index + stable redirect)

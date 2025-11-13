@@ -15,9 +15,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     env:
-      # Lấy từ Secrets (an toàn)
+      # Lấy từ Github Secrets
       MONGO_URL: ${{ secrets.MONGO_URL }}
-      MONGO_DB: ${{ secrets.MONGO_DB }}  # hoặc set literal bên dưới
+      MONGO_DB: ${{ secrets.MONGO_DB }}
     steps:
       - uses: actions/checkout@v4
 
