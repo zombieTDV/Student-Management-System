@@ -53,9 +53,9 @@ EMAIL_USER="huh37394@gmail.com"
 EMAIL_PASSWORD="emwq wlmg soke zlyh"
 ```
 
-**MONGO_URL is the url that contain the account and password to access the DataBase, it will be given by the DataBase Manager, it not, please contact with him**
+**MONGO_URL** *is the url that contain the account and password to access the DataBase, it will be given by the DataBase Manager, it not, please contact with him*
 
-***EMAIL_USER** and **EMAIL_PASSWORD** are the email service account (not the student or admin account's email)*
+**EMAIL_USER** *and* **EMAIL_PASSWORD** *are the email service account (not the student or admin account's email)*
 
 ---
 
