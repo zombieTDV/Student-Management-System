@@ -48,6 +48,8 @@ pymongo==4.15.3
     # via
     #   Student_Management_System (pyproject.toml)
     #   mongita
+python-dotenv==1.2.1
+    # via Student_Management_System (pyproject.toml)
 pytokens==0.2.0
     # via black
 pyyaml==6.0.3
