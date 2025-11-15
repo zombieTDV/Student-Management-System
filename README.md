@@ -61,10 +61,35 @@ EMAIL_PASSWORD="emwq wlmg soke zlyh"
 
 ### Step 4: Run the Application
 
-- Run the shim launcher at project root:
+#### Option 1: Run via Python
 
 ```bash
 python src/main.py
+```
+
+#### Option 2: Run via Docker (Window WSL or Linux)
+
+1. Build the Docker image:
+
+```bash
+docker build -t student-management-app .
+```
+
+2. Run the container:
+
+```bash
+docker run -d -p 5000:5000 student-management-app
+```
+
+3. Run the container with environment variables and GUI support:
+
+```bash
+sudo docker run -it --rm \
+    --network="host" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e DISPLAY=$DISPLAY \
+    --env-file .env \
+    student-management-app
 ```
 
 ---
@@ -103,108 +128,8 @@ Our configuration lints all .py files in src/, tests/, and the project root (e.g
 ```
 📦src
  ┣ 📂controllers
- ┃ ┣ 📂__pycache__
- ┃ ┃ ┣ 📜admin_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜auth_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜fee_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜financial_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜notifications_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜payment_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜re.cpython-312.pyc
- ┃ ┃ ┣ 📜signup.cpython-312.pyc
- ┃ ┃ ┣ 📜student_controller.cpython-312.pyc
- ┃ ┃ ┣ 📜transaction_controller.cpython-312.pyc
- ┃ ┃ ┗ 📜__init__.cpython-312.pyc
- ┃ ┣ 📜admin_controller.py
- ┃ ┣ 📜auth_controller.py
- ┃ ┣ 📜fee_controller.py
- ┃ ┣ 📜financial_controller.py
- ┃ ┣ 📜notifications_controller.py
- ┃ ┣ 📜payment_controller.py
- ┃ ┣ 📜student_controller.py
- ┃ ┣ 📜transaction_controller.py
- ┃ ┗ 📜__init__.py
  ┣ 📂models
- ┃ ┣ 📂__pycache__
- ┃ ┃ ┣ 📜account.cpython-312.pyc
- ┃ ┃ ┣ 📜admin.cpython-312.pyc
- ┃ ┃ ┣ 📜announcement.cpython-312.pyc
- ┃ ┃ ┣ 📜database.cpython-312.pyc
- ┃ ┃ ┣ 📜fee.cpython-312.pyc
- ┃ ┃ ┣ 📜student.cpython-312.pyc
- ┃ ┃ ┣ 📜transaction.cpython-312.pyc
- ┃ ┃ ┗ 📜__init__.cpython-312.pyc
- ┃ ┣ 📜account.py
- ┃ ┣ 📜admin.py
- ┃ ┣ 📜announcement.py
- ┃ ┣ 📜database.py
- ┃ ┣ 📜fee.py
- ┃ ┣ 📜student.py
- ┃ ┣ 📜test.py
- ┃ ┣ 📜transaction.py
- ┃ ┗ 📜__init__.py
- ┣ 📂Student_Management_System.egg-info
- ┃ ┣ 📜dependency_links.txt
- ┃ ┣ 📜PKG-INFO
- ┃ ┣ 📜requires.txt
- ┃ ┣ 📜SOURCES.txt
- ┃ ┗ 📜top_level.txt
  ┣ 📂utils
- ┃ ┣ 📂__pycache__
- ┃ ┃ ┣ 📜email_service.cpython-312.pyc
- ┃ ┃ ┗ 📜__init__.cpython-312.pyc
- ┃ ┣ 📜config.py
- ┃ ┣ 📜email_service.py
- ┃ ┗ 📜__init__.py
  ┣ 📂views
- ┃ ┣ 📂admin
- ┃ ┃ ┣ 📂__pycache__
- ┃ ┃ ┃ ┣ 📜admin_dashboard.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜admin_management.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜fee_management.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜make_anoucements.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜notification_management.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜student_management.cpython-312.pyc
- ┃ ┃ ┃ ┗ 📜transaction_management.cpython-312.pyc
- ┃ ┃ ┣ 📜admin_dashboard.py
- ┃ ┃ ┣ 📜admin_management.py
- ┃ ┃ ┣ 📜fee_management.py
- ┃ ┃ ┣ 📜make_anoucements.py
- ┃ ┃ ┣ 📜notification_management.py
- ┃ ┃ ┣ 📜student_management.py
- ┃ ┃ ┗ 📜transaction_management.py
- ┃ ┣ 📂student
- ┃ ┃ ┣ 📂__pycache__
- ┃ ┃ ┃ ┣ 📜financial_summary.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜payment.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜student_dashboard.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜student_dashboard_view_notifications.cpython-312.pyc
- ┃ ┃ ┃ ┣ 📜student_profile.cpython-312.pyc
- ┃ ┃ ┃ ┗ 📜update_student_profile.cpython-312.pyc
- ┃ ┃ ┣ 📜financial_summary.py
- ┃ ┃ ┣ 📜payment.py
- ┃ ┃ ┣ 📜student_dashboard.py
- ┃ ┃ ┣ 📜student_dashboard_view_notifications.py
- ┃ ┃ ┣ 📜student_profile.py
- ┃ ┃ ┗ 📜update_student_profile.py
- ┃ ┣ 📂__pycache__
- ┃ ┃ ┣ 📜admin_dashboard.cpython-312.pyc
- ┃ ┃ ┣ 📜email_sent.cpython-312.pyc
- ┃ ┃ ┣ 📜financial_summary.cpython-312.pyc
- ┃ ┃ ┣ 📜forgot_password.cpython-312.pyc
- ┃ ┃ ┣ 📜login.cpython-312.pyc
- ┃ ┃ ┣ 📜make_anoucements.cpython-312.pyc
- ┃ ┃ ┣ 📜notification_detail.cpython-312.pyc
- ┃ ┃ ┣ 📜payment.cpython-312.pyc
- ┃ ┃ ┣ 📜student_dashboard.cpython-312.pyc
- ┃ ┃ ┣ 📜student_dashboard_view_notifications.cpython-312.pyc
- ┃ ┃ ┣ 📜student_management.cpython-312.pyc
- ┃ ┃ ┣ 📜student_profile.cpython-312.pyc
- ┃ ┃ ┣ 📜update_student_profile.cpython-312.pyc
- ┃ ┃ ┗ 📜__init__.cpython-312.pyc
- ┃ ┣ 📜forgot_password.py
- ┃ ┣ 📜login.py
- ┃ ┣ 📜notification_detail.py
- ┃ ┗ 📜__init__.py
  ┗ 📜main.py
 ```
