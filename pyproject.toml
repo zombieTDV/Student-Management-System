@@ -20,7 +20,8 @@ dev = [
     "isort",
     "customtkinter",
     "pymongo",
-    "python-dotenv"
+    "python-dotenv",
+    "pillow"
 ]
 
 [tool.pytest.ini_options]
